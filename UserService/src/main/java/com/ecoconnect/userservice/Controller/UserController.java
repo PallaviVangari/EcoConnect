@@ -1,6 +1,7 @@
 package com.ecoconnect.userservice.Controller;
 
 import com.ecoconnect.userservice.Service.UserService;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,10 +34,10 @@ public class UserController {
             return ResponseEntity.ok(createdUser);
         }
         catch (Exception e) {
-            log.error("Error creating user: A user with username '{}' already exists.", user.getUserName());
+            log.error("Error creating user: A user with email '{}' already exists.", user.getEmail());
             return ResponseEntity
                     .status(HttpStatus.CONFLICT)
-                    .body("A user with the username '" + user.getUserName() + "' already exists.");
+                    .body("A user with the email '" + user.getEmail() + "' already exists.");
         }
     }
 
@@ -66,6 +67,38 @@ public class UserController {
             return ResponseEntity.noContent().build();
         }
         return ResponseEntity.ok(users);
+    }
+
+    @PostMapping("/{userId}/follow/{userToFollowUserId}")
+    public ResponseEntity<Void> followUser(@PathVariable String userId, @PathVariable String userToFollowUserId) throws JsonProcessingException {
+        log.info("Received request for user with Id: {} to follow user with Id: {}", userId, userToFollowUserId);
+        userService.followUser(userId, userToFollowUserId);
+        log.info("User with username: {} followed user with id: {}", userId, userToFollowUserId);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/{userId}/unfollow/{userToUnfollowUserId}")
+    public ResponseEntity<Void> unfollowUser(@PathVariable String userId, @PathVariable String userToUnfollowUserId) throws JsonProcessingException {
+        log.info("Received request for user with username: {} to unfollow user with id: {}", userId, userToUnfollowUserId);
+        userService.unfollowUser(userId, userToUnfollowUserId);
+        log.info("User with username: {} unfollowed user with id: {}", userId, userToUnfollowUserId);
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/{userId}/followers")
+    public ResponseEntity<List<User>> getFollowers(@PathVariable String userId) {
+        log.info("Received request to get followers for user with username: {}", userId);
+        List<User> followers = userService.getFollowers(userId);
+        log.info("Retrieved {} followers for user with username: {}", followers.size(), userId);
+        return ResponseEntity.ok(followers);
+    }
+
+    @GetMapping("/{userId}/following")
+    public ResponseEntity<List<User>> getFollowing(@PathVariable String userId) {
+        log.info("Received request to get following for user with username: {}", userId);
+        List<User> following = userService.getFollowing(userId);
+        log.info("Retrieved {} following for user with username: {}", following.size(), userId);
+        return ResponseEntity.ok(following);
     }
 
 }
