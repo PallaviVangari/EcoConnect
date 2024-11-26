@@ -11,11 +11,13 @@ import java.util.List;
 
 public class EventService {
     private final EventRepository eventRepository;
+    private final EventPublisher eventPublisher;
 
     @Autowired
-    public EventService(EventRepository eventRepository)
+    public EventService(EventRepository eventRepository, EventPublisher eventPublisher)
     {
         this.eventRepository = eventRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     public Event createEvent(Event event)
@@ -23,7 +25,11 @@ public class EventService {
         if(eventRepository.findEventById(event.getId()).isPresent()){
             throw  new RuntimeException("Event with the given ID already exists");
         }
-        return  eventRepository.save(event);
+        Event savedEvent = eventRepository.save(event);
+
+        eventPublisher.publishEventCreated(savedEvent.getId(), savedEvent.getCreatorId(), savedEvent.getName());
+
+        return savedEvent;
     }
 
     public List<Event> getAllEvents()

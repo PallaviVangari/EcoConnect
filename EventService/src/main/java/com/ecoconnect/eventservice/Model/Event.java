@@ -12,6 +12,7 @@ import java.util.List;
 public class Event {
     @Id
     private String id;
+    private String creatorId;
     private String name;
     private String description;
     private String location;
