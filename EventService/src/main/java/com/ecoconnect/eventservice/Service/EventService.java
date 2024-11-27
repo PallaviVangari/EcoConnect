@@ -5,6 +5,7 @@ import com.ecoconnect.eventservice.Repository.EventRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -43,6 +44,8 @@ public class EventService {
                         .orElseThrow(() -> new RuntimeException("No event found with given id "+ eventId));
 
         List<String> userIds = event.getRsvpUsers();
+        if(userIds == null)
+            userIds = new ArrayList<>();
         if(userIds.contains(userId))
             throw new RuntimeException("User already registered");
         userIds.add(userId);
