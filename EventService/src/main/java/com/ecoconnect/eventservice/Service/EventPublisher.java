@@ -1,21 +1,45 @@
 package com.ecoconnect.eventservice.Service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
 import org.springframework.kafka.core.KafkaTemplate;
-
+import org.springframework.stereotype.Service;
+import java.util.Map;
 
 @Service
 public class EventPublisher {
 
+    private final KafkaTemplate<String, String> kafkaTemplate;
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
     @Autowired
-    private KafkaTemplate<String, String> kafkaTemplate;
+    public EventPublisher(KafkaTemplate<String, String> kafkaTemplate) {
+        this.kafkaTemplate = kafkaTemplate;
+    }
 
     public void publishEventCreated(String eventId, String creatorId, String eventName) {
-        String message = String.format(
-                "{\"messageType\":\"EVENT_CREATED\",\"eventId\":\"%s\",\"creatorId\":\"%s\",\"eventName\":\"%s\"}",
-                eventId, creatorId, eventName
-        );
-        kafkaTemplate.send("event-notifications", message);
+        publishEvent("EVENT_CREATED", eventId, creatorId, null, eventName);
+    }
+
+    public void publishEventRSVP(String eventId, String participantId, String eventName) {
+        publishEvent("EVENT_RSVP", eventId, null, participantId, eventName);
+    }
+
+    private void publishEvent(String messageType, String eventId, String creatorId, String participantId, String eventName) {
+        try {
+            Map<String, String> message = Map.of(
+                    "messageType", messageType,
+                    "eventId", eventId,
+                    "creatorId", creatorId != null ? creatorId : "",
+                    "participantId", participantId != null ? participantId : "",
+                    "eventName", eventName
+            );
+
+            String jsonMessage = objectMapper.writeValueAsString(message);
+            kafkaTemplate.send("event-notifications", jsonMessage);
+
+        } catch (Exception e) {
+            throw new RuntimeException("Error serializing Kafka message", e);
+        }
     }
 }
