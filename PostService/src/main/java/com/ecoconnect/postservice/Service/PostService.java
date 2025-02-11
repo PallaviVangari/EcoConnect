@@ -2,6 +2,7 @@ package com.ecoconnect.postservice.Service;
 
 import com.ecoconnect.postservice.Model.Post;
 import com.ecoconnect.postservice.Repository.PostRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -15,6 +16,7 @@ import java.util.Optional;
 import java.util.regex.Pattern;
 
 @Service
+@Slf4j
 public class PostService {
 
     private final PostRepository postRepository;
@@ -63,7 +65,7 @@ public class PostService {
         if (postToBeUpdated.isPresent()) {
             if(!isAdmin && !userId.equals(postToBeUpdated.get().getAuthorId()))
             {
-                System.out.println("A user cannot update other user's posts");
+                log.debug("A user cannot update other user's posts");
                 return Optional.empty();
             }
             Post updatedPost = postToBeUpdated.map(p -> {
@@ -81,7 +83,7 @@ public class PostService {
             );
             return Optional.of(updatedPost);
         } else {
-            System.out.println("Was not able to find the post to update with ID value " + postId);
+            log.debug("Was not able to find the post to update with ID value " + postId);
             return Optional.empty();
         }
     }
@@ -94,7 +96,7 @@ public class PostService {
         if(postToBeDeleted.isPresent())
         {
             if(!isAdmin && !userId.equals(postToBeDeleted.map(p -> p.getAuthorId()).orElse(null)))
-                System.out.println("A user cannot delete other user's posts");
+                log.debug("A user cannot delete other user's posts");
             else
             {
                 postRepository.deleteById(postId);
@@ -103,7 +105,7 @@ public class PostService {
             }
         }
         else
-            System.out.println("Did not find the post to be deleted");
+            log.debug("Did not find the post to be deleted");
         return false;
     }
     public List<Post> getAllPosts() {
