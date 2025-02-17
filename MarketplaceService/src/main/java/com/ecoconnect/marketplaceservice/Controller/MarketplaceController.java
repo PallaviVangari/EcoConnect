@@ -32,9 +32,9 @@ public class MarketplaceController {
     }
 
     @PostMapping("/createProduct")
-    public ResponseEntity<?> createProduct(Product product){
+    public ResponseEntity<?> createProduct(@RequestBody Product product){
         try {
-            log.info("Received request for creating a product");
+            log.info("Received request for creating a product : {0}" + product.getName());
             Product p = marketplaceService.createProduct(product);
             return ResponseEntity.ok(p);
         }
@@ -71,4 +71,31 @@ public class MarketplaceController {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
         }
     }
+
+    @PutMapping("/{productId}/updateProduct/{sellerId}")
+    public ResponseEntity<?> updateProduct(@PathVariable String productId,
+                                           @PathVariable String sellerId,
+                                           @RequestBody Product updatedProduct) {
+        try {
+            log.info("Received request to update product with ID: {}", productId);
+            Product product = marketplaceService.updateProduct(sellerId, productId, updatedProduct);
+            return ResponseEntity.ok(product);
+        } catch (Exception e) {
+            log.error("Error while updating product: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<List<Product>> searchProducts(@RequestParam String query) {
+        log.info("Searching for products with query: {}", query);
+        return ResponseEntity.ok(marketplaceService.searchProducts(query));
+    }
+
+    @GetMapping("/seller/{sellerId}/products")
+    public ResponseEntity<List<Product>> getProductsBySeller(@PathVariable String sellerId) {
+        log.info("Fetching products for seller: {}", sellerId);
+        return ResponseEntity.ok(marketplaceService.getProductsBySeller(sellerId));
+    }
+
 }
