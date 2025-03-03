@@ -6,37 +6,38 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ecoconnect.feedservice.Repository.FeedPostRepository;
+import com.ecoconnect.feedservice.Model.FeedPost;
 
-import java.util.Set;
+import java.time.LocalDateTime;
 
 @Service
 public class PostEventListener {
 
     private final RedisTemplate<String, Object> redisTemplate;
-
+    private final FeedPostRepository feedPostRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Autowired
-    public PostEventListener(RedisTemplate<String, Object> redisTemplate) {
+    public PostEventListener(RedisTemplate<String, Object> redisTemplate, FeedPostRepository feedPostRepository) {
         this.redisTemplate = redisTemplate;
+        this.feedPostRepository = feedPostRepository;
     }
 
     @KafkaListener(topics = "post-notifications", groupId = "feed-service-group")
-    public void consumePostEvents(String message)
-    {
-        try
-        {
+    public void consumePostEvents(String message) {
+        try {
             JsonNode event = objectMapper.readTree(message);
             String messageType = event.get("messageType").asText();
 
-            if ("POST_CREATED".equals(messageType))
+            if ("POST_CREATED".equals(messageType)) {
                 handlePostCreated(event);
-            else if ("POST_UPDATED".equals(messageType))
+            } else if ("POST_UPDATED".equals(messageType)) {
                 handlePostUpdated(event);
-            else if("POST_DELETED".equals(messageType))
+            } else if ("POST_DELETED".equals(messageType)) {
                 handlePostDeleted(event);
-        }
-        catch (Exception e) {
+            }
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
@@ -44,57 +45,37 @@ public class PostEventListener {
     private void handlePostCreated(JsonNode event) {
         String postId = event.get("postId").asText();
         String creatorId = event.get("authorId").asText();
+        LocalDateTime createdTime = LocalDateTime.parse(event.get("timestamp").asText());
 
-        // Cache the post details in Redis
-        redisTemplate.opsForHash().put("posts", postId, event.toString());
+        // Store post in MongoDB
+        FeedPost feedPost = new FeedPost(postId, creatorId, event.get("content").asText(),createdTime);
+        feedPostRepository.save(feedPost);
 
-        // Add the post to the creator's feed for future followers
-        String creatorFeedKey = "creator-feed:" + creatorId;
-        redisTemplate.opsForList().leftPush(creatorFeedKey, postId);
-        redisTemplate.opsForList().trim(creatorFeedKey, 0, 99); // Limit size
-
-        // Push the post to current followers' feeds
-        Set<Object> followers = redisTemplate.opsForSet().members("followers:" + creatorId);
-        if (!followers.isEmpty()) {
-            for (Object followerId : followers) {
-                String followerFeedKey = "feed:" + followerId;
-                redisTemplate.opsForList().leftPush(followerFeedKey, postId);
-                redisTemplate.opsForList().trim(followerFeedKey, 0, 99); // Limit size
-            }
-        }
+        // Add to creator's recent posts in Redis
+        String creatorFeedKey = "recent_posts:" + creatorId;
+        redisTemplate.opsForZSet().add(creatorFeedKey, postId, System.currentTimeMillis());
     }
 
     private void handlePostUpdated(JsonNode event) {
         String postId = event.get("postId").asText();
 
-        // Update the post details in Redis
+        // Update the post in Redis (if needed)
         redisTemplate.opsForHash().put("posts", postId, event.toString());
-        // No need to update feeds since they only store post IDs.
+
+        // Update MongoDB if needed
+        FeedPost feedPost = feedPostRepository.findById(postId).orElseThrow(() -> new RuntimeException("Post not found"));
+        feedPost.setContent(event.get("content").asText());
+        feedPostRepository.save(feedPost);
     }
 
     private void handlePostDeleted(JsonNode event) {
         String postId = event.get("postId").asText();
-        String creatorId = event.get("authorId").asText(); // Ensure the correct field for creator ID is used
+        String creatorId = event.get("authorId").asText();
 
-        // Remove the post details from Redis hash
-        redisTemplate.opsForHash().delete("posts", postId);
+        // Delete post from Redis
+        redisTemplate.opsForZSet().remove("recent_posts:" + creatorId, postId);
 
-        // Remove the post from the creator's feed
-        String creatorFeedKey = "creator-feed:" + creatorId;
-        redisTemplate.opsForList().remove(creatorFeedKey, 0, postId);
-
-        // Remove the post from each follower's feed
-        String followersKey = "followers:" + creatorId;
-        Set<Object> followers = redisTemplate.opsForSet().members(followersKey);
-
-        if (!followers.isEmpty()) {
-            for (Object followerId : followers) {
-                String followerFeedKey = "feed:" + followerId;
-                redisTemplate.opsForList().remove(followerFeedKey, 0, postId);
-            }
-        }
-
-        System.out.println("Post with ID " + postId + " has been removed.");
+        // Delete from MongoDB
+        feedPostRepository.deleteById(postId);
     }
-
 }

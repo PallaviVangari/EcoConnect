@@ -1,64 +1,89 @@
 package com.ecoconnect.feedservice.Service;
 
-import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.stereotype.Service;
+import com.ecoconnect.feedservice.Model.User;
+import com.ecoconnect.feedservice.Repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.stereotype.Component;
+import org.springframework.kafka.annotation.KafkaListener;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-@Service
+import java.util.Optional;
+
+@Component
 public class UserEventListener {
 
     private final RedisTemplate<String, Object> redisTemplate;
-
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final UserRepository userRepository;
+    private final ObjectMapper objectMapper;
 
     @Autowired
-    public UserEventListener(RedisTemplate<String, Object> redisTemplate) {
+    public UserEventListener(RedisTemplate<String, Object> redisTemplate, UserRepository userRepository, ObjectMapper objectMapper) {
         this.redisTemplate = redisTemplate;
+        this.userRepository = userRepository;
+        this.objectMapper = objectMapper;
     }
 
+    // Kafka Listener for "user-notifications" topic
     @KafkaListener(topics = "user-notifications", groupId = "feed-service-group")
-    public void consumeUserEvents(String message) {
+    public void listenToUserEvents(String message) {
         try {
             JsonNode event = objectMapper.readTree(message);
             String messageType = event.get("messageType").asText();
 
-            if ("USER_FOLLOWED".equals(messageType)) {
-                handleUserFollowed(event);
-            } else if ("USER_UNFOLLOWED".equals(messageType)) {
-                handleUserUnfollowed(event);
+            switch (messageType) {
+                case "USER_FOLLOWED":
+                    handleFollowEvent(event);
+                    break;
+                case "USER_UNFOLLOWED":
+                    handleUnfollowEvent(event);
+                    break;
+                default:
+                    System.out.println("Unknown message type: " + messageType);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            System.err.println("Error processing Kafka message: " + e.getMessage());
         }
     }
 
-    private void handleUserFollowed(JsonNode event) {
+    // Handle USER_FOLLOWED event
+    private void handleFollowEvent(JsonNode event) {
         String followerId = event.get("followerId").asText();
         String followeeId = event.get("followeeId").asText();
 
-        // Add the follower to the followee's followers set
-        redisTemplate.opsForSet().add("followers:" + followeeId, followerId);
+        // Ensure follower exists in MongoDB
+        User follower = userRepository.findById(followerId).orElseGet(() -> {
+            User newUser = new User(followerId);
+            return userRepository.save(newUser);
+        });
 
-        // Populate the new follower's feed with recent posts from the followee
+        // Update MongoDB
+        follower.getFollowing().add(followeeId);
+        userRepository.save(follower);
 
-        //THIS IS CAUSING DUPLICATE POSTS IN FEED WHEN WE UNFOLLOW AND FOLLOW BACK
+        // Update Redis
+        redisTemplate.opsForSet().add("followees:" + followerId, followeeId);
 
-//        List<Object> recentPosts = redisTemplate.opsForList().range("creator-feed:" + followeeId, 0, 9);
-//        if (!recentPosts.isEmpty()) {
-//            String followerFeedKey = "feed:" + followerId;
-//            redisTemplate.opsForList().leftPushAll(followerFeedKey, recentPosts);
-//            redisTemplate.opsForList().trim(followerFeedKey, 0, 99); // Limit feed size
-//        }
+        System.out.println("User " + followerId + " followed " + followeeId);
     }
 
-    private void handleUserUnfollowed(JsonNode event) {
+    // Handle USER_UNFOLLOWED event
+    private void handleUnfollowEvent(JsonNode event) {
         String followerId = event.get("followerId").asText();
         String followeeId = event.get("followeeId").asText();
 
-        // Remove the follower from the followee's followers set
-        redisTemplate.opsForSet().remove("followers:" + followeeId, followerId);
+        Optional<User> followerOpt = userRepository.findById(followerId);
+
+        if (followerOpt.isPresent()) {
+            User follower = followerOpt.get();
+            follower.getFollowing().remove(followeeId);
+            userRepository.save(follower);
+
+            // Update Redis
+            redisTemplate.opsForSet().remove("followees:" + followerId, followeeId);
+
+            System.out.println("User " + followerId + " unfollowed " + followeeId);
+        }
     }
 }

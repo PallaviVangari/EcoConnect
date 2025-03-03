@@ -1,16 +1,14 @@
 package com.ecoconnect.feedservice.Controller;
 
+import com.ecoconnect.feedservice.Model.FeedPost;
 import com.ecoconnect.feedservice.Service.FeedService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("/feed")
+@RequestMapping("/api/feed")
 public class FeedController {
 
     private final FeedService feedService;
@@ -21,7 +19,7 @@ public class FeedController {
     }
 
     @GetMapping("/{userId}")
-    public List<String> getUserFeed(@PathVariable String userId) {
-        return feedService.getFeed(userId);
+    public List<FeedPost> getUserFeed(@PathVariable String userId, @RequestParam(defaultValue = "10") int limit) {
+        return feedService.getFeed(userId, limit);
     }
 }
