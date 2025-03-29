@@ -4,7 +4,7 @@ import com.ecoconnect.notificationservice.Model.User;
 import com.ecoconnect.notificationservice.Model.UserPreference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.kafka.common.protocol.types.Field;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import java.util.Map;
 
 @Service
+@Slf4j
 public class NotificationListener {
 
     private final EmailService emailService;
@@ -35,7 +36,7 @@ public class NotificationListener {
             String followerId = json.get("followerId").asText();
             String followeeId = json.get("followeeId").asText();
 
-            System.out.println("Received message from user-notifications");
+            log.info("Received message from user-notifications");
 
             if ("USER_FOLLOWED".equals(messageType)) {
                 String followerEmail = json.get("followerEmail").asText();
@@ -46,6 +47,7 @@ public class NotificationListener {
             }
         } catch (Exception e) {
             e.printStackTrace();
+            log.error("Encountered error in handling user events");
         }
     }
 
@@ -54,7 +56,7 @@ public class NotificationListener {
         JsonNode json = parseMessage(message);
         if (json == null) return;
 
-        System.out.println("Received message from event-notifications");
+        log.info("Received message from event-notifications");
 
         String messageType = json.get("messageType").asText();
 
@@ -71,7 +73,7 @@ public class NotificationListener {
         JsonNode json = parseMessage(message);
         if(json == null) return;
 
-        System.out.println("Received message from product-notifications");
+        log.info("Received message from product-notifications");
         String messageType = json.get("messageType").asText();
 
         if ("PRODUCT_CREATED".equals(messageType)) {
@@ -90,12 +92,13 @@ public class NotificationListener {
         if (followers == null || followers.isEmpty()) return;
 
         for (Map.Entry<String, String> entry : followers.entrySet()) {
-            String followerId = entry.getKey();  // Follower's ID
+            String followerId = entry.getKey();  // Assuming key is the follower's ID
             User follower = userService.getUser(followerId);
             if (follower == null) continue;
 
+            // Check user preferences before sending email
             UserPreference pref = userPreferenceService.getUserPreferences(followerId);
-            System.out.println("Event notification preference:"+pref.isReceiveEventNotifications());
+            log.info("Event notification preference:"+pref.isReceiveEventNotifications());
             if (pref.isReceiveEventNotifications()) {
                 emailService.sendEmail(follower.getEmail(), "New Event Created",
                         "Check out the event: " + eventName + " created by " + creator.getEmail());
@@ -123,7 +126,7 @@ public class NotificationListener {
         User seller = userService.getUser(sellerId);
         if (seller == null) return;
 
-        // Fetch followers
+        // Fetch followers (Map<userId, email>)
         Map<String, String> followers = seller.getFollowers();
         if (followers == null || followers.isEmpty()) return;
 
@@ -146,6 +149,7 @@ public class NotificationListener {
             return objectMapper.readTree(message);
         } catch (Exception e) {
             e.printStackTrace();
+            log.error("Encountered an error in parsing the json message. "+message);
             return null;
         }
     }

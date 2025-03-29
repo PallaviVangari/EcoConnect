@@ -29,8 +29,14 @@ public class UserController {
     public ResponseEntity<?> registerUser(@RequestBody User user) {
         try {
             log.info("Received request to create a new user with username: {}", user.getUserName());
+            if(userService.existsByEmail(user.getEmail()))
+            {
+                log.warn("User with email '{}' already exists. Skipping creation.", user.getEmail());
+                return ResponseEntity.status(HttpStatus.CONFLICT)
+                        .body("A user with the email '" + user.getEmail() + "' already exists.");
+            }
             User createdUser = userService.registerUser(user);
-            log.info("Created new user with id: {}", createdUser.getId());
+            log.info("Successfully created new user with id: {}", createdUser.getId());
             return ResponseEntity.ok(createdUser);
         }
         catch (Exception e) {

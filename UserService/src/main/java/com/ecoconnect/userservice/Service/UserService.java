@@ -113,4 +113,9 @@ public class UserService {
         return following;
     }
 
+    public boolean existsByEmail(String email) {
+        return userRepository.existsByEmail(email);
+    }
+
+
 }

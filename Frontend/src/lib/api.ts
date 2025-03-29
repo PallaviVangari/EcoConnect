@@ -1,7 +1,8 @@
 import axios from 'axios';
 import type { User, MarketplaceItem } from '../types';
+import { Config } from '../config/config';
 
-const API_URL = 'https://ecoconnect-backend.onrender.com';
+const API_URL = 'http://localhost';
 
 const api = axios.create({
   baseURL: API_URL,
@@ -106,7 +107,7 @@ export const users = {
   },
   followUser: async (userId: string) => {
     try {
-      const response = await api.post(`/users/${userId}/follow`);
+      const response = await api.post(Config.USER_SERVICE_URL+`/${userId}/follow`);
       return response.data;
     } catch (error: any) {
       const message = error.response?.data?.message || 'Failed to follow user';
@@ -115,7 +116,7 @@ export const users = {
   },
   unfollowUser: async (userId: string) => {
     try {
-      const response = await api.post(`/users/${userId}/unfollow`);
+      const response = await api.post(Config.USER_SERVICE_URL+`/${userId}/unfollow`);
       return response.data;
     } catch (error: any) {
       const message = error.response?.data?.message || 'Failed to unfollow user';
@@ -128,7 +129,7 @@ export const users = {
 export const posts = {
   getPosts: async () => {
     try {
-      const response = await api.get('/posts');
+      const response = await api.get(Config.POST_SERVICE_URL+'/getAllPostsposts');
       return response.data;
     } catch (error: any) {
       const message = error.response?.data?.message || 'Failed to fetch posts';
@@ -141,7 +142,7 @@ export const posts = {
     tags?: string[];
   }) => {
     try {
-      const response = await api.post('/posts', postData);
+      const response = await api.post(Config.POST_SERVICE_URL+'/createPost', postData);
       return response.data;
     } catch (error: any) {
       const message = error.response?.data?.message || 'Failed to create post';

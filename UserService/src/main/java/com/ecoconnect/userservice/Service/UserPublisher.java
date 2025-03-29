@@ -30,6 +30,7 @@ public class UserPublisher {
         message.put("followeeEmail", followeeEmail);
 
         sendMessage("user-notifications", message);
+        System.out.println("User followed message sent");
     }
 
     // Publish "USER_UNFOLLOWED" event
@@ -40,6 +41,7 @@ public class UserPublisher {
         message.put("followeeId", followeeId);
 
         sendMessage("user-notifications", message);
+        System.out.println("User unfollowed message sent");
     }
 
     // Generic method to send JSON messages

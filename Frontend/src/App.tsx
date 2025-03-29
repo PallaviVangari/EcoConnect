@@ -2,8 +2,9 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { AuthGuard } from './components/AuthGuard';
-import { Login } from './pages/Login';
-import { Register } from './pages/Register';
+import  RegisterUser from './pages/RegisterUser';
+// import { Login } from './pages/Login';
+// import { Register } from './pages/Register';
 import { Home } from './pages/Home';
 import { Network } from './pages/Network';
 import { Events } from './pages/Events';
@@ -17,11 +18,12 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
+        {/*<Route path="/login" element={<Login />} />*/}
+        {/*<Route path="/register" element={<Register />} />*/}
         <Route path="/" element={
           <AuthGuard>
             <Layout />
+            <RegisterUser />
           </AuthGuard>
         }>
           <Route index element={<Home />} />

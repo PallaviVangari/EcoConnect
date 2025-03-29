@@ -37,6 +37,7 @@ public class EventPublisher {
 
             String jsonMessage = objectMapper.writeValueAsString(message);
             kafkaTemplate.send("event-notifications", jsonMessage);
+            System.out.println(messageType + "message has been sent");
 
         } catch (Exception e) {
             throw new RuntimeException("Error serializing Kafka message", e);
