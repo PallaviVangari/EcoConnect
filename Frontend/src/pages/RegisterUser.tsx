@@ -1,9 +1,10 @@
-import {useEffect, useRef} from "react";
+import { useEffect, useRef } from "react";
 import { useAuth0 } from "@auth0/auth0-react";
 import axios from "axios";
 
 // Define a User type to match the backend model
 interface User {
+    id: string;  // Unique ID from Auth0 (sub)
     userName: string;
     password: string; // Auth0 does not require this here
     email: string;
@@ -20,11 +21,12 @@ const RegisterUser: React.FC = () => {
         if (isAuthenticated && user) {
             if (hasRun.current) return;
             hasRun.current = true;
+
             const createUser = async () => {
                 try {
-
-                    // Ensure the user details are not undefined
+                    // Ensure user details are not undefined
                     const userData: User = {
+                        id: user.sub, // Unique Auth0 user ID
                         userName: user.name || "DefaultUser", // Default to "DefaultUser" if undefined
                         password: "", // No password needed, as Auth0 handles authentication
                         email: user.email || "default@email.com", // Provide a default email if undefined
@@ -32,8 +34,8 @@ const RegisterUser: React.FC = () => {
                         followers: [], // Default empty followers set
                         following: [] // Default empty following set
                     };
-                    console.log("Sending user data to backend:", userData);
 
+                    console.log("Sending user data to backend:", userData);
 
                     // Make the POST request to register the user
                     const response = await axios.post(
@@ -47,7 +49,7 @@ const RegisterUser: React.FC = () => {
                     );
 
                     console.log("User registered successfully:", response.data);
-                } catch (error) {
+                } catch (error: any) {
                     if (error.response && error.response.status === 409) {
                         console.warn("User already exists:", error.response.data);
                     } else {

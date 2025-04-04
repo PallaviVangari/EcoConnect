@@ -42,10 +42,14 @@ public class MarketplaceService {
 
     public Product createProduct(Product product)
     {
-        if(productRepository.findById(product.getId()).isPresent())
-            throw new RuntimeException("Product with given ID already exists");
+        if (product.getSellerId() == null || product.getSellerId().isEmpty()) {
+            throw new RuntimeException("Seller ID is required");
+        }
 
-        Product createdProduct = productRepository.save(product);
+        // Ensure product ID is null so MongoDB generates one
+        product.setId(null);
+
+        Product createdProduct = productRepository.save(product); // MongoDB assigns the ID
 
         // Publish Kafka event
         marketplacePublisher.publishProductCreated(
