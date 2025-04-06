@@ -50,12 +50,12 @@ public class EventController {
         return ResponseEntity.ok(events);
     }
 
-    @PutMapping("/{eventId}/rsvpEvent/{userId}")
-    public ResponseEntity<?> rsvpEvent(@PathVariable String eventId, @PathVariable String userId)
+    @PutMapping("/{eventId}/rsvpEvent/{userId}/{userEmail}")
+    public ResponseEntity<?> rsvpEvent(@PathVariable String eventId, @PathVariable String userId, @PathVariable String userEmail)
     {
         try{
             log.info("Received request to rsvp for event : {} by userId:{}", eventId,userId );
-            eventService.rsvpToEvent(eventId,userId);
+            eventService.rsvpToEvent(eventId,userId, userEmail);
             return ResponseEntity.ok().build();
         }
         catch (Exception e){

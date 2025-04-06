@@ -111,11 +111,9 @@ public class NotificationListener {
         String eventId = json.get("eventId").asText();
         String participantId = json.get("participantId").asText();
         String eventName = json.get("eventName").asText();
+        String participantEmail = json.get("participantEmail").asText();
 
-        User participant = userService.getUser(participantId);
-        if (participant != null) {
-            emailService.sendEmail(participant.getEmail(), " RSVP'd to Event"+eventId, "Thank you for registering to "+eventName);
-        }
+        emailService.sendEmail(participantEmail, " RSVP'd to Event"+ eventName, "Thank you for registering to "+eventName);
     }
 
     private void handleProductCreated(JsonNode json) {

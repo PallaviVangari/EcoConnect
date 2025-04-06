@@ -107,4 +107,16 @@ public class UserController {
         return ResponseEntity.ok(following);
     }
 
+    @GetMapping("/getUserById/{userId}")
+    public ResponseEntity<?> getUserById(@PathVariable String userId) {
+        try {
+            log.info("Fetching user with id: {}", userId);
+            User user = userService.getUserById(userId);
+            return ResponseEntity.ok(user);
+        } catch (Exception e) {
+            log.error("Error fetching user with id {}: {}", userId, e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found with id: " + userId);
+        }
+    }
+
 }

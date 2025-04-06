@@ -117,5 +117,10 @@ public class UserService {
         return userRepository.existsByEmail(email);
     }
 
+    public User getUserById(String userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+    }
+
 
 }

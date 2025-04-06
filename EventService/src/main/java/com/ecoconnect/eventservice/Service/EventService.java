@@ -64,7 +64,7 @@ public class EventService {
     }
 
     @Transactional
-    public Event rsvpToEvent(String eventId, String userId)
+    public Event rsvpToEvent(String eventId, String userId, String userEmail)
     {
         Event event = eventRepository.findEventById(eventId)
                         .orElseThrow(() -> new RuntimeException("No event found with given id "+ eventId));
@@ -77,7 +77,7 @@ public class EventService {
         userIds.add(userId);
         event.setRsvpUsers(userIds);
         eventRepository.save(event);
-        eventPublisher.publishEventRSVP(eventId, userId, event.getName());
+        eventPublisher.publishEventRSVP(eventId, userId, event.getName(), userEmail);
         return event;
     }
 

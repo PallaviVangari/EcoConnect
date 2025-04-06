@@ -27,7 +27,7 @@ const RegisterUser: React.FC = () => {
                     // Ensure user details are not undefined
                     const userData: User = {
                         id: user.sub, // Unique Auth0 user ID
-                        userName: user.name || "DefaultUser", // Default to "DefaultUser" if undefined
+                        userName: user.nickname || user.name || "DefaultUser", // Default to "DefaultUser" if undefined
                         password: "", // No password needed, as Auth0 handles authentication
                         email: user.email || "default@email.com", // Provide a default email if undefined
                         role: "USER", // Default role

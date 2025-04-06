@@ -18,21 +18,22 @@ public class EventPublisher {
     }
 
     public void publishEventCreated(String eventId, String creatorId, String eventName) {
-        publishEvent("EVENT_CREATED", eventId, creatorId, null, eventName);
+        publishEvent("EVENT_CREATED", eventId, creatorId, null, eventName, null);
     }
 
-    public void publishEventRSVP(String eventId, String participantId, String eventName) {
-        publishEvent("EVENT_RSVP", eventId, null, participantId, eventName);
+    public void publishEventRSVP(String eventId, String participantId, String eventName, String participantEmail) {
+        publishEvent("EVENT_RSVP", eventId, null, participantId, eventName, participantEmail);
     }
 
-    private void publishEvent(String messageType, String eventId, String creatorId, String participantId, String eventName) {
+    private void publishEvent(String messageType, String eventId, String creatorId, String participantId, String eventName, String participantEmail) {
         try {
             Map<String, String> message = Map.of(
                     "messageType", messageType,
                     "eventId", eventId,
                     "creatorId", creatorId != null ? creatorId : "",
                     "participantId", participantId != null ? participantId : "",
-                    "eventName", eventName
+                    "eventName", eventName,
+                    "participantEmail", participantEmail != null ? participantEmail : ""
             );
 
             String jsonMessage = objectMapper.writeValueAsString(message);

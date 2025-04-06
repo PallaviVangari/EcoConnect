@@ -501,7 +501,7 @@ export const Events: React.FC = () => {
         }
 
         try {
-            const response = await fetch(`http://localhost:8060/api/events/${eventId}/rsvpEvent/${user.sub}`, {
+            const response = await fetch(`http://localhost:8060/api/events/${eventId}/rsvpEvent/${user.sub}/${user.email}`, {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
