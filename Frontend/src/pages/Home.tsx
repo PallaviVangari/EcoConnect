@@ -231,22 +231,23 @@
 //   );
 // }
 
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import {useAuth0} from "@auth0/auth0-react";
+import { useAuth0 } from "@auth0/auth0-react";
+import { formatDistanceToNow } from 'date-fns';
 
 interface Post {
+    postId?: string;
     content: string;
     authorId: string;
+    createdDate?: string;
 }
 
 export const Home: React.FC = () => {
     const [content, setContent] = useState('');
     const [message, setMessage] = useState('');
-    const { logout, user: user, isAuthenticated } = useAuth0();
-
-   // const { user, isAuthenticated } = useAuth0(); // Get user details from Auth0
+    const [feed, setFeed] = useState<Post[]>([]);
+    const { logout, user, isAuthenticated } = useAuth0();
 
     const handlePostSubmit = async () => {
         if (!isAuthenticated || !user?.sub) {
@@ -261,18 +262,37 @@ export const Home: React.FC = () => {
 
         const post: Post = {
             content,
-            authorId: user?.sub || "", // Corrected here
+            authorId: user.sub,
         };
 
         try {
             await axios.post('http://localhost:8090/api/post/createPost', post);
             setMessage('Post created successfully!');
             setContent('');
+            fetchFeed(); // Refresh feed after post
         } catch (error) {
             console.error('Error creating post:', error);
             setMessage('Failed to create post');
         }
     };
+
+    const fetchFeed = async () => {
+        if (!user?.sub) return;
+
+        try {
+            const res = await axios.get(`http://localhost:8095/api/feed/${user.sub}?limit=10`);
+            setFeed(res.data);
+        } catch (error) {
+            console.error('Error fetching feed:', error);
+            setMessage('Failed to load feed');
+        }
+    };
+
+    useEffect(() => {
+        if (isAuthenticated) {
+            fetchFeed();
+        }
+    }, [isAuthenticated]);
 
     return (
         <div className="p-4 max-w-xl mx-auto">
@@ -301,6 +321,23 @@ export const Home: React.FC = () => {
                 Post
             </button>
             {message && <p className="mt-2 text-sm">{message}</p>}
+
+            {/* Feed Section */}
+            <div className="mt-6">
+                <h3 className="text-lg font-semibold mb-2">Your Feed</h3>
+                {feed.length === 0 ? (
+                    <p className="text-gray-500">No posts yet.</p>
+                ) : (
+                    feed.map((post) => (
+                        <div key={post.postId} className="bg-white shadow p-4 rounded mb-4">
+                            <div className="text-sm text-gray-600 mb-1">
+                                Posted {post.createdDate && formatDistanceToNow(new Date(post.createdDate), { addSuffix: true })}
+                            </div>
+                            <p className="text-gray-800">{post.content}</p>
+                        </div>
+                    ))
+                )}
+            </div>
         </div>
     );
 };

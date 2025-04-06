@@ -783,7 +783,7 @@ export function Profile() {
     if (isNaN(parsed)) return "Invalid date";
 
     const date = new Date(parsed);
-    return date.toLocaleDateString(undefined, {
+    return date.toLocaleDateString("", {
       month: "short",
       day: "numeric",
       year: "numeric",
