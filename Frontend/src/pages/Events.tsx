@@ -1,607 +1,619 @@
-// import React from 'react';
-// import { Calendar, MapPin, Clock, Users, Filter, Search, Plus, X } from 'lucide-react';
-// import type { Event } from '../types';
-//
-// export function Events() {
-//   const [searchQuery, setSearchQuery] = React.useState('');
-//   const [activeCategory, setActiveCategory] = React.useState<'all' | 'workshop' | 'seminar' | 'cleanup'>('all');
-//   const [showCreateModal, setShowCreateModal] = React.useState(false);
-//   const [events, setEvents] = React.useState<Event[]>([
-//     {
-//       id: '1',
-//       title: 'Urban Gardening Workshop',
-//       description: 'Learn sustainable urban gardening techniques and start your own garden.',
-//       date: '2025-04-15',
-//       time: '14:00',
-//       location: 'Community Center, 123 Green Street',
-//       agenda: [
-//         'Introduction to urban gardening',
-//         'Soil preparation techniques',
-//         'Plant selection for urban environments',
-//         'Maintenance tips'
-//       ],
-//       organizer: {
-//         id: '1',
-//         name: 'Emma Wilson',
-//         email: 'emma@example.com',
-//         avatar: 'https://i.pravatar.cc/150?u=emma',
-//         followers: 1542,
-//         following: 891
-//       },
-//       attendees: [],
-//       maxAttendees: 30,
-//       isRegistered: false,
-//       category: 'workshop'
-//     },
-//     {
-//       id: '2',
-//       title: 'Beach Cleanup Drive',
-//       description: 'Join us for a community beach cleanup to protect marine life.',
-//       date: '2025-04-20',
-//       time: '09:00',
-//       location: 'Sunset Beach',
-//       agenda: [
-//         'Safety briefing',
-//         'Equipment distribution',
-//         'Cleanup activity',
-//         'Waste sorting demonstration'
-//       ],
-//       organizer: {
-//         id: '2',
-//         name: 'David Chen',
-//         email: 'david@example.com',
-//         avatar: 'https://i.pravatar.cc/150?u=david',
-//         followers: 2103,
-//         following: 764
-//       },
-//       attendees: [],
-//       maxAttendees: 50,
-//       isRegistered: false,
-//       category: 'cleanup'
-//     }
-//   ]);
-//
-//   // New event form state
-//   const [newEvent, setNewEvent] = React.useState({
-//     title: '',
-//     description: '',
-//     date: '',
-//     time: '',
-//     location: '',
-//     category: 'workshop' as 'workshop' | 'seminar' | 'cleanup' | 'other',
-//     maxAttendees: 30
-//   });
-//
-//   const handleRegister = (eventId: string) => {
-//     setEvents(events.map(event =>
-//       event.id === eventId
-//         ? { ...event, isRegistered: true, attendees: [...event.attendees, {} as any] }
-//         : event
-//     ));
-//   };
-//
-//   const handleCreateEvent = () => {
-//     // Validate form
-//     if (!newEvent.title || !newEvent.description || !newEvent.date || !newEvent.time || !newEvent.location) {
-//       return;
-//     }
-//
-//     const createdEvent: Event = {
-//       id: Date.now().toString(),
-//       ...newEvent,
-//       agenda: [
-//         'Introduction',
-//         'Main activity',
-//         'Networking',
-//         'Conclusion'
-//       ],
-//       organizer: {
-//         id: 'current-user',
-//         name: 'John Doe',
-//         email: 'john@example.com',
-//         avatar: 'https://i.pravatar.cc/150?u=john',
-//         followers: 245,
-//         following: 189
-//       },
-//       attendees: [],
-//       isRegistered: true
-//     };
-//
-//     setEvents([createdEvent, ...events]);
-//     setShowCreateModal(false);
-//     setNewEvent({
-//       title: '',
-//       description: '',
-//       date: '',
-//       time: '',
-//       location: '',
-//       category: 'workshop',
-//       maxAttendees: 30
-//     });
-//   };
-//
-//   const filteredEvents = events.filter(event =>
-//     (activeCategory === 'all' || event.category === activeCategory) &&
-//     (event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-//     event.description.toLowerCase().includes(searchQuery.toLowerCase()))
-//   );
-//
-//   return (
-//     <div className="max-w-5xl mx-auto">
-//       {/* Header */}
-//       <div className="flex justify-between items-start mb-8">
-//         <div>
-//           <h1 className="text-3xl font-bold text-gray-900 mb-2">Events</h1>
-//           <p className="text-gray-600">Discover and join eco-friendly events in your community</p>
-//         </div>
-//         <button
-//           className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors active:scale-95"
-//           onClick={() => setShowCreateModal(true)}
-//         >
-//           <Plus className="h-5 w-5" />
-//           <span>Create Event</span>
-//         </button>
-//       </div>
-//
-//       {/* Search and Filter */}
-//       <div className="bg-white rounded-lg shadow p-4 mb-6">
-//         <div className="flex flex-col sm:flex-row gap-4">
-//           <div className="flex-1 relative">
-//             <input
-//               type="text"
-//               placeholder="Search events..."
-//               value={searchQuery}
-//               onChange={(e) => setSearchQuery(e.target.value)}
-//               className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-//             />
-//             <Search className="h-5 w-5 text-gray-400 absolute left-3 top-2.5" />
-//           </div>
-//           <button className="flex items-center space-x-2 px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 active:scale-95 transition-transform">
-//             <Filter className="h-5 w-5 text-gray-500" />
-//             <span>Filters</span>
-//           </button>
-//         </div>
-//       </div>
-//
-//       {/* Category Tabs */}
-//       <div className="border-b border-gray-200 mb-6">
-//         <nav className="flex space-x-8">
-//           {(['all', 'workshop', 'seminar', 'cleanup'] as const).map((category) => (
-//             <button
-//               key={category}
-//               onClick={() => setActiveCategory(category)}
-//               className={`py-4 px-1 border-b-2 font-medium text-sm ${
-//                 activeCategory === category
-//                   ? 'border-green-500 text-green-600'
-//                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-//               }`}
-//             >
-//               {category.charAt(0).toUpperCase() + category.slice(1)}
-//             </button>
-//           ))}
-//         </nav>
-//       </div>
-//
-//       {/* Events Grid */}
-//       <div className="grid grid-cols-1 gap-6">
-//         {filteredEvents.length > 0 ? (
-//           filteredEvents.map((event) => (
-//             <div key={event.id} className="bg-white rounded-lg shadow hover:shadow-md transition-shadow">
-//               <div className="p-6">
-//                 <div className="flex justify-between items-start mb-4">
-//                   <h3 className="text-xl font-semibold text-gray-900">{event.title}</h3>
-//                   <span className={`px-3 py-1 rounded-full text-sm ${
-//                     event.category === 'workshop' ? 'bg-blue-100 text-blue-800' :
-//                     event.category === 'seminar' ? 'bg-purple-100 text-purple-800' :
-//                     'bg-green-100 text-green-800'
-//                   }`}>
-//                     {event.category.charAt(0).toUpperCase() + event.category.slice(1)}
-//                   </span>
-//                 </div>
-//
-//                 <p className="text-gray-600 mb-4">{event.description}</p>
-//
-//                 <div className="grid grid-cols-2 gap-4 mb-4">
-//                   <div className="flex items-center space-x-2 text-gray-500">
-//                     <Calendar className="h-5 w-5" />
-//                     <span>{event.date}</span>
-//                   </div>
-//                   <div className="flex items-center space-x-2 text-gray-500">
-//                     <Clock className="h-5 w-5" />
-//                     <span>{event.time}</span>
-//                   </div>
-//                   <div className="flex items-center space-x-2 text-gray-500">
-//                     <MapPin className="h-5 w-5" />
-//                     <span>{event.location}</span>
-//                   </div>
-//                   <div className="flex items-center space-x-2 text-gray-500">
-//                     <Users className="h-5 w-5" />
-//                     <span>{event.attendees.length} / {event.maxAttendees} attendees</span>
-//                   </div>
-//                 </div>
-//
-//                 <div className="border-t pt-4">
-//                   <div className="flex items-center justify-between">
-//                     <div className="flex items-center space-x-3">
-//                       <img
-//                         src={event.organizer.avatar}
-//                         alt={`${event.organizer.name}'s avatar`}
-//                         className="h-8 w-8 rounded-full"
-//                       />
-//                       <div>
-//                         <p className="text-sm font-medium text-gray-900">{event.organizer.name}</p>
-//                         <p className="text-sm text-gray-500">Organizer</p>
-//                       </div>
-//                     </div>
-//                     <button
-//                       onClick={() => handleRegister(event.id)}
-//                       disabled={event.isRegistered}
-//                       className={`px-4 py-2 rounded-lg active:scale-95 transition-transform ${
-//                         event.isRegistered
-//                           ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
-//                           : 'bg-green-600 text-white hover:bg-green-700'
-//                       }`}
-//                     >
-//                       {event.isRegistered ? 'Registered' : 'Register'}
-//                     </button>
-//                   </div>
-//                 </div>
-//               </div>
-//             </div>
-//           ))
-//         ) : (
-//           <div className="bg-white rounded-lg shadow p-8 text-center">
-//             <p className="text-gray-600 mb-2">No events found matching your criteria.</p>
-//             <p className="text-gray-500">Try adjusting your search or filters.</p>
-//           </div>
-//         )}
-//       </div>
-//
-//       {/* Create Event Modal */}
-//       {showCreateModal && (
-//         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-//           <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-//             <div className="p-6">
-//               <div className="flex justify-between items-center mb-6">
-//                 <h2 className="text-2xl font-bold text-gray-900">Create New Event</h2>
-//                 <button
-//                   onClick={() => setShowCreateModal(false)}
-//                   className="text-gray-500 hover:text-gray-700 active:scale-95 transition-transform"
-//                 >
-//                   <X className="h-6 w-6" />
-//                 </button>
-//               </div>
-//
-//               <div className="space-y-4">
-//                 <div>
-//                   <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
-//                     Event Title
-//                   </label>
-//                   <input
-//                     type="text"
-//                     id="title"
-//                     value={newEvent.title}
-//                     onChange={(e) => setNewEvent({...newEvent, title: e.target.value})}
-//                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-//                     placeholder="Enter event title"
-//                   />
-//                 </div>
-//
-//                 <div>
-//                   <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
-//                     Description
-//                   </label>
-//                   <textarea
-//                     id="description"
-//                     value={newEvent.description}
-//                     onChange={(e) => setNewEvent({...newEvent, description: e.target.value})}
-//                     rows={4}
-//                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-//                     placeholder="Describe your event"
-//                   />
-//                 </div>
-//
-//                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-//                   <div>
-//                     <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-1">
-//                       Date
-//                     </label>
-//                     <input
-//                       type="date"
-//                       id="date"
-//                       value={newEvent.date}
-//                       onChange={(e) => setNewEvent({...newEvent, date: e.target.value})}
-//                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-//                     />
-//                   </div>
-//
-//                   <div>
-//                     <label htmlFor="time" className="block text-sm font-medium text-gray-700 mb-1">
-//                       Time
-//                     </label>
-//                     <input
-//                       type="time"
-//                       id="time"
-//                       value={newEvent.time}
-//                       onChange={(e) => setNewEvent({...newEvent, time: e.target.value})}
-//                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-//                     />
-//                   </div>
-//                 </div>
-//
-//                 <div>
-//                   <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">
-//                     Location
-//                   </label>
-//                   <input
-//                     type="text"
-//                     id="location"
-//                     value={newEvent.location}
-//                     onChange={(e) => setNewEvent({...newEvent, location: e.target.value})}
-//                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-//                     placeholder="Enter event location"
-//                   />
-//                 </div>
-//
-//                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-//                   <div>
-//                     <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
-//                       Category
-//                     </label>
-//                     <select
-//                       id="category"
-//                       value={newEvent.category}
-//                       onChange={(e) => setNewEvent({...newEvent, category: e.target.value as any})}
-//                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-//                     >
-//                       <option value="workshop">Workshop</option>
-//                       <option value="seminar">Seminar</option>
-//                       <option value="cleanup">Cleanup</option>
-//                       <option value="other">Other</option>
-//                     </select>
-//                   </div>
-//
-//                   <div>
-//                     <label htmlFor="maxAttendees" className="block text-sm font-medium text-gray-700 mb-1">
-//                       Max Attendees
-//                     </label>
-//                     <input
-//                       type="number"
-//                       id="maxAttendees"
-//                       value={newEvent.maxAttendees}
-//                       onChange={(e) => setNewEvent({...newEvent, maxAttendees: parseInt(e.target.value)})}
-//                       min="1"
-//                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-//                     />
-//                   </div>
-//                 </div>
-//               </div>
-//
-//               <div className="mt-8 flex justify-end space-x-3">
-//                 <button
-//                   onClick={() => setShowCreateModal(false)}
-//                   className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 active:scale-95 transition-transform"
-//                 >
-//                   Cancel
-//                 </button>
-//                 <button
-//                   onClick={handleCreateEvent}
-//                   className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 active:scale-95 transition-transform"
-//                 >
-//                   Create Event
-//                 </button>
-//               </div>
-//             </div>
-//           </div>
-//         </div>
-//       )}
-//     </div>
-//   );
-// }
 import React, { useState, useEffect } from "react";
 import { useAuth0 } from "@auth0/auth0-react";
 import { v4 as uuidv4 } from "uuid";
+import { Button } from "../components/Button";
+import { Text } from "../components/Text";
+import { Img } from "../components/Img";
+import { Heading } from "../components/Heading";
 
 interface Event {
-    id: string;
-    creatorId: string;
-    title: string;
-    description: string;
-    location: string;
-    date: string;
-    time: string;
+  id: string;
+  creatorId: string;
+  title: string;
+  description: string;
+  location: string;
+  date: string;
+  time: string;
 }
 
 export const Events: React.FC = () => {
-    const { user, isAuthenticated } = useAuth0();
-    const [events, setEvents] = useState<Event[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [showPopup, setShowPopup] = useState(false);
-    const [newEvent, setNewEvent] = useState({
+  const { user, isAuthenticated } = useAuth0();
+  const [events, setEvents] = useState<Event[]>([]);
+  const [userEvents, setUserEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showCreateEventModal, setShowCreateEventModal] = useState(false);
+  const [newEvent, setNewEvent] = useState({
+    title: "",
+    description: "",
+    location: "",
+    date: "",
+    time: "",
+  });
+  const [activeTab, setActiveTab] = useState("explore");
+  const [editingEventId, setEditingEventId] = useState<string | null>(null);
+  const [registeredEvents, setRegisteredEvents] = useState<Event[]>([]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchEvents = async () => {
+      try {
+        const response = await fetch(
+          "http://localhost:8060/api/events/getAllEvents"
+        );
+        if (!response.ok)
+          throw new Error(`Failed to fetch events: ${response.statusText}`);
+
+        const data = await response.json();
+        if (isMounted) {
+          const formattedEvents = data.map((event: any) => ({
+            id: event.id,
+            creatorId: event.creatorId,
+            title: event.name,
+            description: event.description,
+            location: event.location,
+            date: event.dateTime.split("T")[0],
+            time: event.dateTime.split("T")[1].substring(0, 5),
+          }));
+          setEvents(formattedEvents);
+          if (user) {
+            const userEvents = formattedEvents.filter(
+              (event) => event.creatorId === user.sub
+            );
+            setUserEvents(userEvents);
+            // Fetch registered events
+            const registeredResponse = await fetch(
+              `http://localhost:8060/api/events/eventsByUser/${user.sub}`
+            );
+            if (!registeredResponse.ok)
+              throw new Error("Failed to fetch registered events");
+
+            const registeredData = await registeredResponse.json();
+            const formattedRegisteredEvents = registeredData.map(
+              (event: any) => ({
+                id: event.id,
+                creatorId: event.creatorId,
+                title: event.name,
+                description: event.description,
+                location: event.location,
+                date: event.dateTime.split("T")[0],
+                time: event.dateTime.split("T")[1].substring(0, 5),
+              })
+            );
+            setRegisteredEvents(formattedRegisteredEvents);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching events:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEvents();
+    return () => {
+      isMounted = false;
+    };
+  }, [user]);
+
+  const handleCreateEvent = async () => {
+    if (!isAuthenticated || !user?.email) {
+      alert("You must be logged in to create an event.");
+      return;
+    }
+
+    const eventToCreate = {
+      id: uuidv4(),
+      creatorId: user.sub,
+      name: newEvent.title,
+      description: newEvent.description,
+      location: newEvent.location,
+      dateTime: `${newEvent.date}T${newEvent.time}`,
+    };
+
+    try {
+      const response = await fetch("http://localhost:8060/api/events/create", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(eventToCreate),
+      });
+
+      if (!response.ok) throw new Error("Failed to create event");
+
+      const createdEvent = await response.json();
+      setEvents([...events, { ...createdEvent, title: createdEvent.name }]);
+      setShowCreateEventModal(false);
+      setNewEvent({
         title: "",
         description: "",
         location: "",
         date: "",
         time: "",
+      });
+    } catch (error) {
+      console.error("Error creating event:", error);
+    }
+  };
+
+  const handleRSVP = async (eventId: string) => {
+    if (!isAuthenticated || !user?.email) {
+      alert("You must be logged in to RSVP.");
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `http://localhost:8060/api/events/${eventId}/rsvpEvent/${user.sub}/${user.email}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) throw new Error("Failed to RSVP");
+
+      // Find the event being registered
+      const eventToRegister = events.find((event) => event.id === eventId);
+      if (eventToRegister) {
+        alert("You have successfully registered for the event!");
+        // Add the event to registeredEvents and remove it from events
+        setRegisteredEvents((prev) => [...prev, eventToRegister]);
+        setEvents((prev) => prev.filter((event) => event.id !== eventId));
+      }
+
+      alert("RSVP successful!");
+    } catch (error) {
+      console.error("Error RSVPing to event:", error);
+      alert("Failed to RSVP.");
+    }
+  };
+
+  const generateTimeOptions = () => {
+    const times = [];
+    for (let hour = 0; hour < 24; hour++) {
+      for (let minute = 0; minute < 60; minute += 30) {
+        const formattedHour = hour.toString().padStart(2, "0");
+        const formattedMinute = minute.toString().padStart(2, "0");
+        times.push(`${formattedHour}:${formattedMinute}`);
+      }
+    }
+    return times;
+  };
+
+  const handleDeleteEvent = async (eventId: string) => {
+    try {
+      const response = await fetch(
+        `http://localhost:8060/api/events/${eventId}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      if (!response.ok) throw new Error("Failed to delete event");
+
+      // Update the state to remove the deleted event
+      setUserEvents(userEvents.filter((event) => event.id !== eventId));
+      setEvents(events.filter((event) => event.id !== eventId));
+      alert("Event deleted successfully!");
+    } catch (error) {
+      console.error("Error deleting event:", error);
+      alert("Failed to delete event.");
+    }
+  };
+
+  const handleEditEvent = (eventId: string) => {
+    const eventToEdit = userEvents.find((event) => event.id === eventId);
+    if (!eventToEdit) return;
+
+    setNewEvent({
+      title: eventToEdit.title,
+      description: eventToEdit.description,
+      location: eventToEdit.location,
+      date: eventToEdit.date,
+      time: eventToEdit.time,
     });
 
-    useEffect(() => {
-        let isMounted = true;
+    setEditingEventId(eventId);
+    setShowCreateEventModal(true);
+  };
 
-        const fetchEvents = async () => {
-            try {
-                const response = await fetch("http://localhost:8060/api/events/getAllEvents");
-                if (!response.ok) throw new Error(`Failed to fetch events: ${response.statusText}`);
+  const handleUpdateEvent = async () => {
+    if (!editingEventId) return;
 
-                const data = await response.json();
-                if (isMounted) {
-                    const formattedEvents = data.map((event: any) => ({
-                        id: event.id,
-                        creatorId: event.creatorId,
-                        title: event.name,
-                        description: event.description,
-                        location: event.location,
-                        date: event.dateTime.split("T")[0],
-                        time: event.dateTime.split("T")[1].substring(0, 5),
-                    }));
-                    setEvents(formattedEvents);
-                }
-            } catch (error) {
-                console.error("Error fetching events:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchEvents();
-        return () => {
-            isMounted = false;
-        };
-    }, []);
-
-    const handleCreateEvent = async () => {
-        if (!isAuthenticated || !user?.email) {
-            alert("You must be logged in to create an event.");
-            return;
-        }
-
-        const eventToCreate = {
-            id: uuidv4(),
-            creatorId: user.sub,  // Using Auth0 email as user ID
-            name: newEvent.title,
-            description: newEvent.description,
-            location: newEvent.location,
-            dateTime: `${newEvent.date}T${newEvent.time}`,
-        };
-
-        try {
-            const response = await fetch("http://localhost:8060/api/events/create", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(eventToCreate),
-            });
-
-            if (!response.ok) throw new Error("Failed to create event");
-
-            const createdEvent = await response.json();
-            setEvents([...events, { ...createdEvent, title: createdEvent.name }]);
-            setShowPopup(false);
-            setNewEvent({ title: "", description: "", location: "", date: "", time: "" });
-        } catch (error) {
-            console.error("Error creating event:", error);
-        }
+    const updatedEvent = {
+      id: editingEventId,
+      creatorId: user?.sub,
+      name: newEvent.title,
+      description: newEvent.description,
+      location: newEvent.location,
+      dateTime: `${newEvent.date}T${newEvent.time}`,
     };
 
-    const handleRSVP = async (eventId: string) => {
-        if (!isAuthenticated || !user?.email) {
-            alert("You must be logged in to RSVP.");
-            return;
+    try {
+      const response = await fetch(
+        `http://localhost:8060/api/events/${editingEventId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(updatedEvent),
         }
+      );
 
-        try {
-            const response = await fetch(`http://localhost:8060/api/events/${eventId}/rsvpEvent/${user.sub}/${user.email}`, {
-                method: "PUT",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-            });
+      if (!response.ok) throw new Error("Failed to update event");
 
-            if (!response.ok) throw new Error("Failed to RSVP");
-            alert("RSVP successful!");
-        } catch (error) {
-            console.error("Error RSVPing to event:", error);
-        }
-    };
+      const updatedEventResponse = await response.json();
 
-    return (
-        <div className="container mx-auto p-4">
-            <h2 className="text-2xl font-bold mb-4">Events</h2>
+      // Update the state
+      setUserEvents((prevEvents) =>
+        prevEvents.map((event) =>
+          event.id === editingEventId
+            ? { ...event, ...updatedEventResponse }
+            : event
+        )
+      );
+      setEvents((prevEvents) =>
+        prevEvents.map((event) =>
+          event.id === editingEventId
+            ? { ...event, ...updatedEventResponse }
+            : event
+        )
+      );
 
-            <button
-                className="bg-blue-500 text-white px-4 py-2 rounded-lg mb-4"
-                onClick={() => setShowPopup(true)}
-            >
-                Create Event
-            </button>
+      alert("Event updated successfully!");
+      setShowCreateEventModal(false);
+      setEditingEventId(null);
+    } catch (error) {
+      console.error("Error updating event:", error);
+      alert("Failed to update event.");
+    }
+  };
 
-            {loading ? (
-                <p>Loading events...</p>
-            ) : events.length === 0 ? (
-                <p>No events available.</p>
-            ) : (
-                <ul className="space-y-4">
-                    {events.map((event) => (
-                        <li key={event.id} className="border p-4 rounded-lg shadow-lg">
-                            <h3 className="text-xl font-semibold">{event.title}</h3>
-                            <p>{event.description}</p>
-                            <p><strong>Location:</strong> {event.location}</p>
-                            <p><strong>Date:</strong> {event.date} <strong>Time:</strong> {event.time}</p>
-                            <button
-                                className="bg-green-500 text-white px-3 py-1 rounded mt-2"
-                                onClick={() => handleRSVP(event.id)}
-                            >
-                                RSVP
-                            </button>
-                        </li>
-                    ))}
-                </ul>
-            )}
-
-            {showPopup && (
-                <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-                    <div className="bg-white p-6 rounded-lg shadow-lg">
-                        <h3 className="text-lg font-semibold mb-2">Create Event</h3>
-                        <input
-                            type="text"
-                            placeholder="Title"
-                            className="border p-2 w-full mb-2"
-                            value={newEvent.title}
-                            onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
-                        />
-                        <textarea
-                            placeholder="Description"
-                            className="border p-2 w-full mb-2"
-                            value={newEvent.description}
-                            onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
-                        />
-                        <input
-                            type="text"
-                            placeholder="Location"
-                            className="border p-2 w-full mb-2"
-                            value={newEvent.location}
-                            onChange={(e) => setNewEvent({ ...newEvent, location: e.target.value })}
-                        />
-                        <input
-                            type="date"
-                            className="border p-2 w-full mb-2"
-                            value={newEvent.date}
-                            onChange={(e) => setNewEvent({ ...newEvent, date: e.target.value })}
-                        />
-                        <input
-                            type="time"
-                            className="border p-2 w-full mb-2"
-                            value={newEvent.time}
-                            onChange={(e) => setNewEvent({ ...newEvent, time: e.target.value })}
-                        />
-                        <div className="flex justify-end space-x-2">
-                            <button
-                                className="bg-gray-400 text-white px-3 py-1 rounded"
-                                onClick={() => setShowPopup(false)}
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                className="bg-blue-500 text-white px-3 py-1 rounded"
-                                onClick={handleCreateEvent}
-                            >
-                                Create
-                            </button>
-                        </div>
-                    </div>
+  return (
+    <>
+      <div className="min-h-screen flex flex-col bg-gray-50">
+        <div className="flex flex-grow">
+          <div className="w-full py-10 md:py-12 flex-grow">
+            <div className="container mx-auto px-6 md:px-8">
+              {/* Tabs */}
+              <div className="flex justify-between items-center mb-6">
+                <div className="flex gap-10">
+                  <Button
+                    onClick={() => setActiveTab("explore")}
+                    className={`${
+                      activeTab === "explore"
+                        ? "text-[#1d3016] border-b-4 border-[#1d3016] px-6 py-3 text-xl font-bold transition-all duration-300"
+                        : "text-[#1d3016] hover:bg-[#f0f0f0] border-b-4 border-transparent px-6 py-3 text-xl font-bold transition-all duration-300"
+                    } rounded-md`}
+                  >
+                    Explore Events
+                  </Button>
+                  <Button
+                    onClick={() => setActiveTab("yourEvents")}
+                    className={`${
+                      activeTab === "yourEvents"
+                        ? "text-[#1d3016] border-b-4 border-[#1d3016] px-6 py-3 text-xl font-bold transition-all duration-300"
+                        : "text-[#1d3016] hover:bg-[#f0f0f0] border-b-4 border-transparent px-6 py-3 text-xl font-bold transition-all duration-300"
+                    } rounded-md`}
+                  >
+                    Your Events
+                  </Button>
+                  <Button
+                    onClick={() => setActiveTab("registeredEvents")}
+                    className={`${
+                      activeTab === "registeredEvents"
+                        ? "text-[#1d3016] border-b-4 border-[#1d3016] px-6 py-3 text-xl font-bold transition-all duration-300"
+                        : "text-[#1d3016] hover:bg-[#f0f0f0] border-b-4 border-transparent px-6 py-3 text-xl font-bold transition-all duration-300"
+                    } rounded-md`}
+                  >
+                    Registered Events
+                  </Button>
                 </div>
-            )}
+                {activeTab === "yourEvents" && (
+                  <Button
+                    onClick={() => setShowCreateEventModal(true)}
+                    className="bg-[#1d3016] text-white px-6 py-3 text-xl font-bold rounded-md hover:bg-[#162c10] transition-all"
+                  >
+                    Create Event
+                  </Button>
+                )}
+              </div>
+
+              {/* Content Based on Active Tab */}
+              <div className="mt-6">
+                {activeTab === "explore" && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {loading ? (
+                      <Text className="text-xl">Loading events...</Text>
+                    ) : events.length === 0 ? (
+                      <Text className="text-xl">No events available.</Text>
+                    ) : (
+                      events
+                        .filter((event) => event.creatorId !== user?.sub) // Exclude user's events
+                        .map((event) => (
+                          <div
+                            key={event.id}
+                            className="bg-white shadow-lg rounded-xl border-2 border-[#1d3016] p-6 hover:shadow-xl transition-all duration-300 w-96 h-80 flex flex-col justify-between"
+                          >
+                            <Text
+                              className="text-4xl font-bold text-[#1d3016] mb-3"
+                              style={{ fontSize: "1.5rem" }} // Explicitly set the font size for 4xl
+                            >
+                              {event.title}
+                            </Text>
+
+                            <div className="flex items-center gap-2 text-gray-600 text-xl mb-3">
+                              <Img
+                                src="images/calendar.svg"
+                                alt="Date"
+                                className="w-7 h-7"
+                              />
+                              <Text className="text-lg">{event.date}</Text>
+                              <Text className="text-lg">{event.time}</Text>
+                            </div>
+
+                            <div className="flex items-center gap-2 text-gray-600 text-xl mb-3">
+                              <Img
+                                src="images/location.svg"
+                                alt="Location"
+                                className="w-7 h-7"
+                              />
+                              <Text className="text-lg">{event.location}</Text>
+                            </div>
+
+                            <Text className="text-gray-700 text-lg mb-5 flex-grow">
+                              {event.description}
+                            </Text>
+
+                            <Button
+                              onClick={() => handleRSVP(event.id)}
+                              style={{
+                                backgroundColor: "#1d3016",
+                                color: "white",
+                              }}
+                              className="w-full rounded-md px-4 py-3 hover:bg-[#162c10] transition-all"
+                            >
+                              Register
+                            </Button>
+                          </div>
+                        ))
+                    )}
+                  </div>
+                )}
+
+                {activeTab === "yourEvents" && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {loading ? (
+                      <Text className="text-xl">Loading your events...</Text>
+                    ) : userEvents.length === 0 ? (
+                      <Text className="text-xl">
+                        You have not created any events.
+                      </Text>
+                    ) : (
+                      userEvents.map((event) => (
+                        <div
+                          key={event.id}
+                          className="bg-white shadow-lg rounded-xl border-2 border-[#1d3016] p-6 hover:shadow-xl transition-all duration-300 w-96 h-80 flex flex-col justify-between"
+                        >
+                          <Text
+                            className="text-4xl font-bold text-[#1d3016] mb-3"
+                            style={{ fontSize: "1.5rem" }} // Explicitly set the font size for 4xl
+                          >
+                            {event.title}
+                          </Text>
+
+                          <div className="flex items-center gap-2 text-gray-600 text-xl mb-3">
+                            <Img
+                              src="images/calendar.svg"
+                              alt="Date"
+                              className="w-8 h-8"
+                            />
+                            <Text className="text-lg">{event.date}</Text>
+                            <Text className="text-lg">{event.time}</Text>
+                          </div>
+
+                          <div className="flex items-center gap-2 text-gray-600 text-xl mb-3">
+                            <Img
+                              src="images/location.svg"
+                              alt="Location"
+                              className="w-8 h-8"
+                            />
+                            <Text className="text-lg">{event.location}</Text>
+                          </div>
+
+                          <Text
+                            as="p"
+                            className="text-gray-700 text-lg mb-5 flex-grow"
+                          >
+                            {event.description}
+                          </Text>
+                          <div className="flex justify-between">
+                            <Button
+                              onClick={() => handleEditEvent(event.id)}
+                              className="bg-[#1d3016] text-white px-6 py-3 text-xl font-bold rounded-md hover:bg-[#162c10] transition-all"
+                            >
+                              Edit
+                            </Button>
+                            <Button
+                              onClick={() => handleDeleteEvent(event.id)}
+                              className="bg-[#1d3016] text-white px-6 py-3 text-xl font-bold rounded-md hover:bg-[#162c10] transition-all"
+                            >
+                              Delete
+                            </Button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+
+                {activeTab === "registeredEvents" && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {registeredEvents.length === 0 ? (
+                      <Text className="text-xl">
+                        You have not registered for any events.
+                      </Text>
+                    ) : (
+                      registeredEvents.map((event) => (
+                        <div
+                          key={event.id}
+                          className="bg-white shadow-lg rounded-xl border-2 border-[#1d3016] p-6 hover:shadow-xl transition-all duration-300 w-96 h-80 flex flex-col justify-between"
+                        >
+                          <Text
+                            className="text-4xl font-bold text-[#1d3016] mb-3"
+                            style={{ fontSize: "1.5rem" }}
+                          >
+                            {event.title}
+                          </Text>
+
+                          <div className="flex items-center gap-2 text-gray-600 text-xl mb-3">
+                            <Img
+                              src="images/calendar.svg"
+                              alt="Date"
+                              className="w-7 h-7"
+                            />
+                            <Text className="text-lg">{event.date}</Text>
+                            <Text className="text-lg">{event.time}</Text>
+                          </div>
+
+                          <div className="flex items-center gap-2 text-gray-600 text-xl mb-3">
+                            <Img
+                              src="images/location.svg"
+                              alt="Location"
+                              className="w-7 h-7"
+                            />
+                            <Text className="text-lg">{event.location}</Text>
+                          </div>
+
+                          <Text className="text-gray-700 text-lg mb-5 flex-grow">
+                            {event.description}
+                          </Text>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
-    );
+
+        {/* Create Event Modal */}
+        {showCreateEventModal && (
+          <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm">
+            <div className="bg-white p-8 rounded-xl shadow-2xl max-w-lg w-full transform transition-all duration-300 ease-in-out">
+              <h3 className="text-3xl font-semibold text-[#1d3016] mb-6 text-center">
+                Create Event
+              </h3>
+
+              {/* Event Title */}
+              <div className="mb-6">
+                <label className="block text-lg font-medium text-[#333] mb-2">
+                  Event Title
+                </label>
+                <input
+                  type="text"
+                  placeholder="Enter event title"
+                  value={newEvent.title}
+                  onChange={(e) =>
+                    setNewEvent({ ...newEvent, title: e.target.value })
+                  }
+                  className="border-2 border-[#ccc] p-4 w-full rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1d3016] transition-all duration-200"
+                />
+              </div>
+
+              {/* Event Description */}
+              <div className="mb-6">
+                <label className="block text-lg font-medium text-[#333] mb-2">
+                  Event Description
+                </label>
+                <textarea
+                  placeholder="Enter event description"
+                  value={newEvent.description}
+                  onChange={(e) =>
+                    setNewEvent({ ...newEvent, description: e.target.value })
+                  }
+                  className="border-2 border-[#ccc] p-4 w-full rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1d3016] transition-all duration-200"
+                />
+              </div>
+
+              {/* Event Location */}
+              <div className="mb-6">
+                <label className="block text-lg font-medium text-[#333] mb-2">
+                  Event Location
+                </label>
+                <input
+                  type="text"
+                  placeholder="Enter event location"
+                  value={newEvent.location}
+                  onChange={(e) =>
+                    setNewEvent({ ...newEvent, location: e.target.value })
+                  }
+                  className="border-2 border-[#ccc] p-4 w-full rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1d3016] transition-all duration-200"
+                />
+              </div>
+
+              {/* Event Date */}
+              <div className="mb-6">
+                <label className="block text-lg font-medium text-[#333] mb-2">
+                  Event Date
+                </label>
+                <input
+                  type="date"
+                  value={newEvent.date}
+                  onChange={(e) =>
+                    setNewEvent({ ...newEvent, date: e.target.value })
+                  }
+                  className="border-2 border-[#ccc] p-4 w-full rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1d3016] transition-all duration-200"
+                />
+              </div>
+
+              {/* Event Time */}
+              <div className="mb-6">
+                <label className="block text-lg font-medium text-[#333] mb-2">
+                  Event Time
+                </label>
+                <select
+                  value={newEvent.time}
+                  onChange={(e) =>
+                    setNewEvent({ ...newEvent, time: e.target.value })
+                  }
+                  className="border-2 border-[#ccc] p-4 w-full rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1d3016] transition-all duration-200"
+                >
+                  {generateTimeOptions().map((time) => (
+                    <option key={time} value={time}>
+                      {time}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex justify-between gap-6 mt-6">
+                <Button
+                  onClick={() => setShowCreateEventModal(false)}
+                  className="bg-gray-400 text-white px-6 py-3 rounded-lg hover:bg-gray-500 transition-all duration-200"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={
+                    editingEventId ? handleUpdateEvent : handleCreateEvent
+                  }
+                  className="bg-[#1d3016] text-white px-6 py-3 rounded-lg hover:bg-[#162c10] transition-all duration-200"
+                >
+                  {editingEventId ? "Update Event" : "Create Event"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </>
+  );
 };

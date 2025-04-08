@@ -72,12 +72,12 @@ public class EventService {
         List<String> userIds = event.getRsvpUsers();
         if(userIds == null)
                 userIds = new ArrayList<String>();
-        if(userIds.contains(userId))
-            throw new RuntimeException("User already registered");
+//        if(userIds.contains(userId))
+//            throw new RuntimeException("User already registered");
         userIds.add(userId);
         event.setRsvpUsers(userIds);
         eventRepository.save(event);
-        eventPublisher.publishEventRSVP(eventId, userId, event.getName(), userEmail);
+//        eventPublisher.publishEventRSVP(eventId, userId, event.getName(), userEmail);
         return event;
     }
 
@@ -99,4 +99,9 @@ public class EventService {
         }
         eventRepository.deleteById(eventId);
     }
+
+    public List<Event> getEventsByUserId(String userId) {
+        return eventRepository.findByRsvpUsersContains(userId);
+    }
+
 }
