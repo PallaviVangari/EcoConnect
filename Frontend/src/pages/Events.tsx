@@ -102,6 +102,9 @@ export const Events: React.FC = () => {
       return;
     }
 
+    // Close the modal immediately
+    setShowCreateEventModal(false);
+
     const eventToCreate = {
       id: uuidv4(),
       creatorId: user.sub,
@@ -124,7 +127,6 @@ export const Events: React.FC = () => {
 
       const createdEvent = await response.json();
       setEvents([...events, { ...createdEvent, title: createdEvent.name }]);
-      setShowCreateEventModal(false);
       setNewEvent({
         title: "",
         description: "",
@@ -134,6 +136,7 @@ export const Events: React.FC = () => {
       });
     } catch (error) {
       console.error("Error creating event:", error);
+      alert("Failed to create event.");
     }
   };
 
@@ -301,7 +304,7 @@ export const Events: React.FC = () => {
                         : "text-[#1d3016] hover:bg-[#f0f0f0] border-b-4 border-transparent px-6 py-3 text-xl font-bold transition-all duration-300"
                     } rounded-md`}
                   >
-                    Your Events
+                    My Events
                   </Button>
                   <Button
                     onClick={() => setActiveTab("registeredEvents")}
@@ -317,7 +320,11 @@ export const Events: React.FC = () => {
                 {activeTab === "yourEvents" && (
                   <Button
                     onClick={() => setShowCreateEventModal(true)}
-                    className="bg-[#1d3016] text-white px-6 py-3 text-xl font-bold rounded-md hover:bg-[#162c10] transition-all"
+                    style={{
+                      backgroundColor: "#1d3016",
+                      color: "white",
+                    }}
+                    className="px-6 py-3 text-xl rounded-md hover:bg-[#162c10] transition-all"
                   >
                     Create Event
                   </Button>
@@ -411,7 +418,7 @@ export const Events: React.FC = () => {
                             <Img
                               src="images/calendar.svg"
                               alt="Date"
-                              className="w-8 h-8"
+                              className="w-7 h-7"
                             />
                             <Text className="text-lg">{event.date}</Text>
                             <Text className="text-lg">{event.time}</Text>
@@ -421,7 +428,7 @@ export const Events: React.FC = () => {
                             <Img
                               src="images/location.svg"
                               alt="Location"
-                              className="w-8 h-8"
+                              className="w-7 h-7"
                             />
                             <Text className="text-lg">{event.location}</Text>
                           </div>
@@ -435,13 +442,21 @@ export const Events: React.FC = () => {
                           <div className="flex justify-between">
                             <Button
                               onClick={() => handleEditEvent(event.id)}
-                              className="bg-[#1d3016] text-white px-6 py-3 text-xl font-bold rounded-md hover:bg-[#162c10] transition-all"
+                              style={{
+                                backgroundColor: "#1d3016",
+                                color: "white",
+                              }}
+                              className="rounded-md px-6 py-3 rounded-md hover:bg-[#162c10] transition-all"
                             >
                               Edit
                             </Button>
                             <Button
                               onClick={() => handleDeleteEvent(event.id)}
-                              className="bg-[#1d3016] text-white px-6 py-3 text-xl font-bold rounded-md hover:bg-[#162c10] transition-all"
+                              style={{
+                                backgroundColor: "#1d3016",
+                                color: "white",
+                              }}
+                              className="rounded-md px-6 py-3 rounded-md hover:bg-[#162c10] transition-all"
                             >
                               Delete
                             </Button>
@@ -605,7 +620,12 @@ export const Events: React.FC = () => {
                   onClick={
                     editingEventId ? handleUpdateEvent : handleCreateEvent
                   }
-                  className="bg-[#1d3016] text-white px-6 py-3 rounded-lg hover:bg-[#162c10] transition-all duration-200"
+                  style={
+                    editingEventId
+                      ? { backgroundColor: "#1d3016", color: "white" }
+                      : { backgroundColor: "#1d3016", color: "white" }
+                  }
+                  className="rounded-md px-6 py-3 rounded-md hover:bg-[#162c10] transition-all"
                 >
                   {editingEventId ? "Update Event" : "Create Event"}
                 </Button>
