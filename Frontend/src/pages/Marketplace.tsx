@@ -34,6 +34,7 @@ export const Marketplace: React.FC = () => {
     description: "",
     price: 0,
   });
+  const [showProductModal, setShowProductModal] = useState(false);
 
   useEffect(() => {
     fetchProducts();
@@ -107,19 +108,22 @@ export const Marketplace: React.FC = () => {
     try {
       const productData = { ...newProduct, sellerId: user.sub };
       if (editingProduct) {
+        // Update existing product
         await axios.put(
           `http://localhost:8070/api/marketplace/${editingProduct.id}/updateProduct/${user.sub}`,
           productData
         );
         setEditingProduct(null);
       } else {
+        // Create new product
         await axios.post(
           "http://localhost:8070/api/marketplace/createProduct",
           productData
         );
       }
-      setNewProduct({ name: "", description: "", price: 0 });
-      fetchUserProducts();
+      setNewProduct({ name: "", description: "", price: 0 }); // Reset form
+      fetchUserProducts(); // Refresh user products
+      setShowProductModal(false); // Close the modal
     } catch (error) {
       console.error("Error saving product:", error);
     }
@@ -144,6 +148,7 @@ export const Marketplace: React.FC = () => {
       description: product.description,
       price: product.price,
     });
+    setShowProductModal(true); // Open the modal for editing
   };
 
   return (
@@ -174,6 +179,15 @@ export const Marketplace: React.FC = () => {
             >
               Manage Your Products
             </Heading>
+            <Button
+              onClick={() => {
+                setEditingProduct(null); // Reset editing state
+                setShowProductModal(true); // Open modal for creating a product
+              }}
+              className="bg-[#1d3016] text-white px-6 py-3 rounded-md hover:bg-[#162c10] transition-all mb-6"
+            >
+              Create Product
+            </Button>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {userProducts.map((product) => (
                 <div
@@ -183,7 +197,7 @@ export const Marketplace: React.FC = () => {
                   <Img
                     src={product.image || "images/logistics-transfer.svg"} // Placeholder image
                     alt={product.name}
-                    className="h-[150px] w-full object-cover rounded-md mb-4"
+                    className="h-[150px] w-full object-contain rounded-md mb-4"
                   />
                   <Text
                     size="textlg"
@@ -261,6 +275,79 @@ export const Marketplace: React.FC = () => {
                   </Button>
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* Modal for Creating/Editing Products */}
+        {showProductModal && (
+          <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm">
+            <div className="bg-white p-8 rounded-xl shadow-2xl max-w-lg w-full">
+              <Heading
+                size="headinglg"
+                as="h3"
+                className="text-[24px] font-bold text-[#1d3016] mb-6"
+              >
+                {editingProduct ? "Edit Product" : "Create Product"}
+              </Heading>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Product Name
+                </label>
+                <input
+                  type="text"
+                  value={newProduct.name}
+                  onChange={(e) =>
+                    setNewProduct({ ...newProduct, name: e.target.value })
+                  }
+                  className="border-2 border-gray-300 p-2 w-full rounded-md"
+                />
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Description
+                </label>
+                <textarea
+                  value={newProduct.description}
+                  onChange={(e) =>
+                    setNewProduct({
+                      ...newProduct,
+                      description: e.target.value,
+                    })
+                  }
+                  className="border-2 border-gray-300 p-2 w-full rounded-md"
+                />
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Price
+                </label>
+                <input
+                  type="number"
+                  value={newProduct.price}
+                  onChange={(e) =>
+                    setNewProduct({
+                      ...newProduct,
+                      price: parseFloat(e.target.value),
+                    })
+                  }
+                  className="border-2 border-gray-300 p-2 w-full rounded-md"
+                />
+              </div>
+              <div className="flex justify-end gap-4">
+                <Button
+                  onClick={() => setShowProductModal(false)} // Close the modal
+                  className="bg-gray-400 text-white px-4 py-2 rounded-md hover:bg-gray-500"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={createOrUpdateProduct} // Trigger create/update logic
+                  className="bg-[#1d3016] text-white px-4 py-2 rounded-md hover:bg-[#162c10]"
+                >
+                  {editingProduct ? "Update Product" : "Create Product"}
+                </Button>
+              </div>
             </div>
           </div>
         )}
