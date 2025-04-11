@@ -82,18 +82,21 @@ export function Layout() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow-sm fixed w-full top-0 z-50">
+      <nav className="bg-[#1d3016] shadow-lg fixed w-full top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
+            {" "}
+            {/* Reduced height */}
             <div className="flex items-center">
               <Link to="/" className="flex-shrink-0 flex items-center">
-                <span className="text-xl font-bold text-green-600">
-                  EcoConnect
-                </span>
+                <span className="text-xl font-bold text-white">EcoConnect</span>{" "}
+                {/* Reduced font size */}
               </Link>
 
-              <div className="hidden sm:ml-6 sm:flex sm:items-center">
+              <div className="hidden sm:ml-4 sm:flex sm:items-center">
                 <div className="relative w-64 mx-4" ref={searchRef}>
+                  {" "}
+                  {/* Reduced width */}
                   <input
                     type="text"
                     placeholder="Search..."
@@ -103,37 +106,35 @@ export function Layout() {
                       setIsSearchOpen(true);
                     }}
                     onFocus={() => setIsSearchOpen(true)}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   />
                   <Search className="h-5 w-5 text-gray-400 absolute left-3 top-2.5" />
                 </div>
               </div>
             </div>
-
-            <div className="hidden sm:flex sm:items-center sm:space-x-8">
+            <div className="hidden sm:flex sm:items-center sm:space-x-6">
               {navigation.map((item) => (
                 <Link
                   key={item.name}
                   to={item.href}
-                  className={`text-gray-600 hover:text-green-600 px-3 py-2 rounded-md text-sm font-medium flex items-center space-x-1 ${
-                    isActive(item.href) ? "text-green-600" : ""
+                  className={`text-white hover:text-green-300 px-3 py-1.5 rounded-md text-base font-medium flex items-center space-x-2 ${
+                    isActive(item.href) ? "text-green-300" : ""
                   }`}
                 >
-                  <item.icon className="h-4 w-4" />
+                  <item.icon className="h-5 w-5" />
                   <span>{item.name}</span>
                 </Link>
               ))}
             </div>
-
             <div className="flex items-center space-x-4">
               <div className="relative" ref={notificationsRef}>
                 <button
-                  className="text-gray-600 hover:text-green-600 relative active:scale-95 transition-transform"
+                  className="text-white hover:text-green-300 relative active:scale-95 transition-transform"
                   onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
                 >
-                  <Bell className="h-6 w-6" />
+                  <Bell className="h-5 w-5" />
                   {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
                       {unreadCount}
                     </span>
                   )}
@@ -141,17 +142,17 @@ export function Layout() {
               </div>
               <Link
                 to="/profile"
-                className="text-gray-600 hover:text-green-600 active:scale-95 transition-transform"
+                className="text-white hover:text-green-300 active:scale-95 transition-transform"
               >
-                <User className="h-6 w-6" />
+                <User className="h-5 w-5" />
               </Link>
 
               {/* Logout Button */}
               <button
                 onClick={() => logout({ returnTo: window.location.origin })}
-                className="text-gray-600 hover:text-red-600 px-3 py-2 rounded-md text-sm font-medium flex items-center space-x-1"
+                className="text-white hover:text-red-400 px-3 py-1.5 rounded-md text-base font-medium flex items-center space-x-2"
               >
-                <X className="h-4 w-4" />
+                <X className="h-5 w-5" />
                 <span>Logout</span>
               </button>
             </div>
