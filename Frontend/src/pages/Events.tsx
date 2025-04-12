@@ -398,9 +398,8 @@
 //     </div>
 //   );
 // }
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useAuth0 } from "@auth0/auth0-react";
-import { v4 as uuidv4 } from "uuid";
 
 interface Event {
     id: string;
@@ -412,188 +411,245 @@ interface Event {
     time: string;
 }
 
-export const Events: React.FC = () => {
-    const { user, isAuthenticated } = useAuth0();
+export const Events = () => {
+    const { user } = useAuth0();
     const [events, setEvents] = useState<Event[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [showPopup, setShowPopup] = useState(false);
-    const [newEvent, setNewEvent] = useState({
-        title: "",
-        description: "",
-        location: "",
-        date: "",
-        time: "",
-    });
+    const [myEvents, setMyEvents] = useState<Event[]>([]);
+    const [activeTab, setActiveTab] = useState<"all" | "my">("all");
 
-    useEffect(() => {
-        let isMounted = true;
+    // 🆕 Edit State
+    const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+    const [creatingEvent, setCreatingEvent] = useState(false); // For create event modal
 
-        const fetchEvents = async () => {
-            try {
-                const response = await fetch("http://localhost:8060/api/events/getAllEvents");
-                if (!response.ok) throw new Error(`Failed to fetch events: ${response.statusText}`);
-
-                const data = await response.json();
-                if (isMounted) {
-                    const formattedEvents = data.map((event: any) => ({
-                        id: event.id,
-                        creatorId: event.creatorId,
-                        title: event.name,
-                        description: event.description,
-                        location: event.location,
-                        date: event.dateTime.split("T")[0],
-                        time: event.dateTime.split("T")[1].substring(0, 5),
-                    }));
-                    setEvents(formattedEvents);
-                }
-            } catch (error) {
-                console.error("Error fetching events:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchEvents();
-        return () => {
-            isMounted = false;
-        };
-    }, []);
-
-    const handleCreateEvent = async () => {
-        if (!isAuthenticated || !user?.email) {
-            alert("You must be logged in to create an event.");
-            return;
-        }
-
-        const eventToCreate = {
-            id: uuidv4(),
-            creatorId: user.sub,  // Using Auth0 email as user ID
-            name: newEvent.title,
-            description: newEvent.description,
-            location: newEvent.location,
-            dateTime: `${newEvent.date}T${newEvent.time}`,
-        };
-
-        try {
-            const response = await fetch("http://localhost:8060/api/events/create", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(eventToCreate),
-            });
-
-            if (!response.ok) throw new Error("Failed to create event");
-
-            const createdEvent = await response.json();
-            setEvents([...events, { ...createdEvent, title: createdEvent.name }]);
-            setShowPopup(false);
-            setNewEvent({ title: "", description: "", location: "", date: "", time: "" });
-        } catch (error) {
-            console.error("Error creating event:", error);
+    // Fetch All and My Events
+    const fetchAllEvents = async () => {
+        const res = await fetch("http://localhost:8060/api/events/getAllEvents");
+        if (res.ok) {
+            const data = await res.json();
+            setEvents(data.map(formatEvent));
         }
     };
 
-    const handleRSVP = async (eventId: string) => {
-        if (!isAuthenticated || !user?.email) {
-            alert("You must be logged in to RSVP.");
-            return;
+    const fetchMyEvents = async () => {
+        if (!user?.sub) return;
+        const res = await fetch(`http://localhost:8060/api/events/getEventsByCreator/${user.sub}`);
+        if (res.ok) {
+            const data = await res.json();
+            setMyEvents(data.map(formatEvent));
         }
+    };
 
-        try {
-            const response = await fetch(`http://localhost:8060/api/events/${eventId}/rsvpEvent/${user.sub}/${user.email}`, {
-                method: "PUT",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-            });
+    useEffect(() => {
+        fetchAllEvents();
+        if (user?.sub) fetchMyEvents();
+    }, [user]);
 
-            if (!response.ok) throw new Error("Failed to RSVP");
+    const formatEvent = (event: any) => ({
+        id: event.id,
+        creatorId: event.creatorId,
+        title: event.name,
+        description: event.description,
+        location: event.location,
+        date: event.dateTime?.split("T")[0],
+        time: event.dateTime?.split("T")[1]?.substring(0, 5),
+    });
+
+    const handleRSVP = async (eventId: string) => {
+        if (!user?.sub || !user?.email) return;
+        const res = await fetch(`http://localhost:8060/api/events/${eventId}/rsvpEvent/${user.sub}/${user.email}`, {
+            method: "PUT",
+        });
+        if (res.ok) {
             alert("RSVP successful!");
-        } catch (error) {
-            console.error("Error RSVPing to event:", error);
+        } else {
+            const msg = await res.text();
+            alert("RSVP failed: " + msg);
+        }
+    };
+
+    const handleDeleteEvent = async (eventId: string) => {
+        const res = await fetch(`http://localhost:8060/api/events/${eventId}`, { method: "DELETE" });
+        if (res.ok) {
+            setMyEvents((prev) => prev.filter((e) => e.id !== eventId));
+            alert("Event deleted!");
+        } else {
+            alert("Failed to delete event.");
+        }
+    };
+
+    // 🆕 Handle Edit Save
+    const handleEditEvent = async () => {
+        if (!editingEvent) return;
+        const { id, title, description, location, date, time } = editingEvent;
+
+        const updatedEvent = {
+            name: title,
+            description,
+            location,
+            creatorId: user?.sub,
+            dateTime: `${date}T${time}`,
+        };
+
+        const res = await fetch(`http://localhost:8060/api/events/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(updatedEvent),
+        });
+
+        if (res.ok) {
+            alert("Event updated!");
+            setEditingEvent(null);
+            fetchMyEvents(); // Refresh list
+            fetchAllEvents();
+        } else {
+            const msg = await res.text();
+            alert("Failed to update event: " + msg);
+        }
+    };
+
+    const handleCreateEvent = async () => {
+        if (!editingEvent) return;
+        const { title, description, location, date, time } = editingEvent;
+
+        const newEvent = {
+            name: title,
+            description,
+            location,
+            creatorId: user?.sub,
+            dateTime: `${date}T${time}`,
+        };
+
+        const res = await fetch("http://localhost:8060/api/events/createEvent", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(newEvent),
+        });
+
+        if (res.ok) {
+            alert("Event created!");
+            setCreatingEvent(false);
+            setEditingEvent(null);
+            fetchMyEvents(); // Refresh list
+            fetchAllEvents();
+        } else {
+            const msg = await res.text();
+            alert("Failed to create event: " + msg);
         }
     };
 
     return (
-        <div className="container mx-auto p-4">
-            <h2 className="text-2xl font-bold mb-4">Events</h2>
+        <div className="max-w-4xl mx-auto p-4">
+            <h2 className="text-3xl font-bold mb-6 text-center">Events</h2>
 
-            <button
-                className="bg-blue-500 text-white px-4 py-2 rounded-lg mb-4"
-                onClick={() => setShowPopup(true)}
-            >
-                Create Event
-            </button>
+            {/* Tab Switcher */}
+            <div className="flex justify-center mb-6">
+                <button
+                    className={`px-4 py-2 rounded-l ${
+                        activeTab === "all" ? "bg-blue-600 text-white" : "bg-gray-200"
+                    }`}
+                    onClick={() => setActiveTab("all")}
+                >
+                    All Events
+                </button>
+                <button
+                    className={`px-4 py-2 rounded-r ${
+                        activeTab === "my" ? "bg-blue-600 text-white" : "bg-gray-200"
+                    }`}
+                    onClick={() => setActiveTab("my")}
+                >
+                    My Events
+                </button>
+            </div>
 
-            {loading ? (
-                <p>Loading events...</p>
-            ) : events.length === 0 ? (
-                <p>No events available.</p>
-            ) : (
-                <ul className="space-y-4">
-                    {events.map((event) => (
-                        <li key={event.id} className="border p-4 rounded-lg shadow-lg">
-                            <h3 className="text-xl font-semibold">{event.title}</h3>
-                            <p>{event.description}</p>
-                            <p><strong>Location:</strong> {event.location}</p>
-                            <p><strong>Date:</strong> {event.date} <strong>Time:</strong> {event.time}</p>
-                            <button
-                                className="bg-green-500 text-white px-3 py-1 rounded mt-2"
-                                onClick={() => handleRSVP(event.id)}
-                            >
-                                RSVP
-                            </button>
-                        </li>
-                    ))}
-                </ul>
+            {activeTab === "my" && (
+                <div className="flex justify-between items-center mb-6">
+                    <button
+                        className="bg-blue-500 text-white px-4 py-2 rounded"
+                        onClick={() => {
+                            setCreatingEvent(true);
+                            setEditingEvent({
+                                id: "",
+                                creatorId: user?.sub || "",
+                                title: "",
+                                description: "",
+                                location: "",
+                                date: "",
+                                time: "",
+                            });
+                        }}
+                    >
+                        Create Event
+                    </button>
+                </div>
             )}
 
-            {showPopup && (
-                <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-                    <div className="bg-white p-6 rounded-lg shadow-lg">
-                        <h3 className="text-lg font-semibold mb-2">Create Event</h3>
+
+            {activeTab === "all" ? (
+                <AllEventsList events={events} onRSVP={handleRSVP} />
+            ) : (
+                <MyEventsList
+                    events={myEvents}
+                    onDelete={handleDeleteEvent}
+                    onEdit={setEditingEvent}
+                />
+            )}
+
+            {/* Create Event Modal */}
+            {creatingEvent && (
+                <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+                    <div className="bg-white p-6 rounded shadow-lg w-96">
+                        <h3 className="text-xl font-semibold mb-4">Create Event</h3>
                         <input
                             type="text"
                             placeholder="Title"
-                            className="border p-2 w-full mb-2"
-                            value={newEvent.title}
-                            onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
+                            className="w-full border p-2 mb-2"
+                            value={editingEvent?.title || ""}
+                            onChange={(e) =>
+                                setEditingEvent((prev) => prev ? { ...prev, title: e.target.value } : prev)
+                            }
                         />
                         <textarea
                             placeholder="Description"
-                            className="border p-2 w-full mb-2"
-                            value={newEvent.description}
-                            onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
+                            className="w-full border p-2 mb-2"
+                            value={editingEvent?.description || ""}
+                            onChange={(e) =>
+                                setEditingEvent((prev) => prev ? { ...prev, description: e.target.value } : prev)
+                            }
                         />
                         <input
                             type="text"
                             placeholder="Location"
-                            className="border p-2 w-full mb-2"
-                            value={newEvent.location}
-                            onChange={(e) => setNewEvent({ ...newEvent, location: e.target.value })}
+                            className="w-full border p-2 mb-2"
+                            value={editingEvent?.location || ""}
+                            onChange={(e) =>
+                                setEditingEvent((prev) => prev ? { ...prev, location: e.target.value } : prev)
+                            }
                         />
                         <input
                             type="date"
-                            className="border p-2 w-full mb-2"
-                            value={newEvent.date}
-                            onChange={(e) => setNewEvent({ ...newEvent, date: e.target.value })}
+                            className="w-full border p-2 mb-2"
+                            value={editingEvent?.date || ""}
+                            onChange={(e) =>
+                                setEditingEvent((prev) => prev ? { ...prev, date: e.target.value } : prev)
+                            }
                         />
                         <input
                             type="time"
-                            className="border p-2 w-full mb-2"
-                            value={newEvent.time}
-                            onChange={(e) => setNewEvent({ ...newEvent, time: e.target.value })}
+                            className="w-full border p-2 mb-2"
+                            value={editingEvent?.time || ""}
+                            onChange={(e) =>
+                                setEditingEvent((prev) => prev ? { ...prev, time: e.target.value } : prev)
+                            }
                         />
-                        <div className="flex justify-end space-x-2">
+                        <div className="flex justify-end gap-2">
                             <button
-                                className="bg-gray-400 text-white px-3 py-1 rounded"
-                                onClick={() => setShowPopup(false)}
+                                className="px-4 py-2 bg-gray-300 rounded"
+                                onClick={() => setCreatingEvent(false)}
                             >
                                 Cancel
                             </button>
                             <button
-                                className="bg-blue-500 text-white px-3 py-1 rounded"
+                                className="px-4 py-2 bg-green-500 text-white rounded"
                                 onClick={handleCreateEvent}
                             >
                                 Create
@@ -602,6 +658,135 @@ export const Events: React.FC = () => {
                     </div>
                 </div>
             )}
+
+            {/* Edit Event Modal */}
+            {editingEvent && (
+                <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-40">
+                    <div className="bg-white p-6 rounded shadow-lg w-96">
+                        <h3 className="text-xl font-semibold mb-4">Edit Event</h3>
+                        <input
+                            type="text"
+                            placeholder="Title"
+                            className="w-full border p-2 mb-2"
+                            value={editingEvent.title}
+                            onChange={(e) =>
+                                setEditingEvent((prev) => prev ? { ...prev, title: e.target.value } : prev)
+                            }
+                        />
+                        <textarea
+                            placeholder="Description"
+                            className="w-full border p-2 mb-2"
+                            value={editingEvent.description}
+                            onChange={(e) =>
+                                setEditingEvent((prev) => prev ? { ...prev, description: e.target.value } : prev)
+                            }
+                        />
+                        <input
+                            type="text"
+                            placeholder="Location"
+                            className="w-full border p-2 mb-2"
+                            value={editingEvent.location}
+                            onChange={(e) =>
+                                setEditingEvent((prev) => prev ? { ...prev, location: e.target.value } : prev)
+                            }
+                        />
+                        <input
+                            type="date"
+                            className="w-full border p-2 mb-2"
+                            value={editingEvent.date}
+                            onChange={(e) =>
+                                setEditingEvent((prev) => prev ? { ...prev, date: e.target.value } : prev)
+                            }
+                        />
+                        <input
+                            type="time"
+                            className="w-full border p-2 mb-2"
+                            value={editingEvent.time}
+                            onChange={(e) =>
+                                setEditingEvent((prev) => prev ? { ...prev, time: e.target.value } : prev)
+                            }
+                        />
+                        <div className="flex justify-end gap-2">
+                            <button
+                                className="px-4 py-2 bg-gray-300 rounded"
+                                onClick={() => setEditingEvent(null)}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                className="px-4 py-2 bg-green-500 text-white rounded"
+                                onClick={handleEditEvent}
+                            >
+                                Save
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
         </div>
     );
 };
+
+// 💡 Subcomponents for cleaner separation
+const AllEventsList = ({ events, onRSVP }: { events: Event[]; onRSVP: (id: string) => void }) => (
+    events.length === 0 ? (
+        <p className="text-center text-gray-500">No events available.</p>
+    ) : (
+        <ul className="space-y-4">
+            {events.map((event) => (
+                <li key={event.id} className="border p-4 rounded-lg shadow-md">
+                    <h3 className="text-xl font-semibold">{event.title}</h3>
+                    <p>{event.description}</p>
+                    <p><strong>Location:</strong> {event.location}</p>
+                    <p><strong>Date:</strong> {event.date} <strong>Time:</strong> {event.time}</p>
+                    <button
+                        className="bg-green-500 text-white px-4 py-1 rounded mt-2"
+                        onClick={() => onRSVP(event.id)}
+                    >
+                        RSVP
+                    </button>
+                </li>
+            ))}
+        </ul>
+    )
+);
+
+const MyEventsList = ({
+                          events,
+                          onDelete,
+                          onEdit
+                      }: {
+    events: Event[];
+    onDelete: (id: string) => void;
+    onEdit: (event: Event) => void;
+}) => (
+    events.length === 0 ? (
+        <p className="text-center text-gray-500">You haven't created any events yet.</p>
+    ) : (
+        <ul className="space-y-4">
+            {events.map((event) => (
+                <li key={event.id} className="border p-4 rounded-lg shadow-md">
+                    <h3 className="text-xl font-semibold">{event.title}</h3>
+                    <p>{event.description}</p>
+                    <p><strong>Location:</strong> {event.location}</p>
+                    <p><strong>Date:</strong> {event.date} <strong>Time:</strong> {event.time}</p>
+                    <div className="flex space-x-2 mt-2">
+                        <button
+                            className="bg-yellow-500 text-white px-4 py-1 rounded"
+                            onClick={() => onEdit(event)}
+                        >
+                            Edit
+                        </button>
+                        <button
+                            className="bg-red-600 text-white px-4 py-1 rounded"
+                            onClick={() => onDelete(event.id)}
+                        >
+                            Delete
+                        </button>
+                    </div>
+                </li>
+            ))}
+        </ul>
+    )
+);

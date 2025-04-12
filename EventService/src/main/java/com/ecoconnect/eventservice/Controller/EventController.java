@@ -22,7 +22,7 @@ public class EventController {
         this.eventService = eventService;
     }
 
-    @PostMapping("/create")
+    @PostMapping("/createEvent")
     public ResponseEntity<?> createEvent(@RequestBody Event event)
     {
         try {
@@ -91,5 +91,21 @@ public class EventController {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
         }
     }
+
+    @GetMapping("/getEventsByCreator/{userId}")
+    public ResponseEntity<?> getEventsByCreator(@PathVariable String userId) {
+        try {
+            log.info("Fetching events created by userId: {}", userId);
+            List<Event> events = eventService.getEventsByCreator(userId);
+            if (events.isEmpty()) {
+                return ResponseEntity.noContent().build();
+            }
+            return ResponseEntity.ok(events);
+        } catch (Exception e) {
+            log.error("Error fetching user events: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error fetching user events");
+        }
+    }
+
 
 }

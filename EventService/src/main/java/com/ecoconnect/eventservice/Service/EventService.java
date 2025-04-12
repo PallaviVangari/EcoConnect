@@ -28,6 +28,7 @@ public class EventService {
     public Event createEvent(Event event)
     {
         validateEvent(event);
+        event.setId(null);
         Event savedEvent = eventRepository.save(event);
         eventPublisher.publishEventCreated(savedEvent.getId(), savedEvent.getCreatorId(), savedEvent.getName());
 
@@ -37,9 +38,6 @@ public class EventService {
     private void validateEvent(Event event) {
         if (event == null) {
             throw new InvalidEventException("Event object cannot be null");
-        }
-        if (event.getId() == null || event.getId().isBlank()) {
-            throw new InvalidEventException("Event ID is required");
         }
         if (event.getCreatorId() == null || event.getCreatorId().isBlank()) {
             throw new InvalidEventException("Creator ID is required");
@@ -53,7 +51,7 @@ public class EventService {
         if (event.getDateTime().isBefore(LocalDateTime.now())) {
             throw new InvalidEventException("Event date must be in the future");
         }
-        if (eventRepository.existsById(event.getId())) {
+        if (event.getId() != null && eventRepository.existsById(event.getId())) {
             throw new RuntimeException("Event with the given ID already exists");
         }
     }
@@ -99,4 +97,9 @@ public class EventService {
         }
         eventRepository.deleteById(eventId);
     }
+
+    public List<Event> getEventsByCreator(String userId) {
+        return eventRepository.findByCreatorId(userId);
+    }
+
 }

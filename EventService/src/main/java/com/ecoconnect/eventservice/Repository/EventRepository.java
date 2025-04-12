@@ -14,4 +14,6 @@ public interface EventRepository extends MongoRepository<Event, String> {
 
     List<Event> findAll();
 
+    List<Event> findByCreatorId(String creatorId);
+
 }

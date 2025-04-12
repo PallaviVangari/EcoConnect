@@ -235,6 +235,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth0 } from "@auth0/auth0-react";
 import { formatDistanceToNow } from 'date-fns';
+import {ChatWidget} from "./ChatWidget.tsx";
 
 interface Post {
     postId?: string;
@@ -338,6 +339,8 @@ export const Home: React.FC = () => {
                     ))
                 )}
             </div>
+
+            <ChatWidget />
         </div>
     );
 };
