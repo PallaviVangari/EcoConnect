@@ -33,7 +33,7 @@ function App() {
           <Route path="messages" element={<Messages />} />
           <Route path="chatbot" element={<Chatbot />} />
           <Route path="profile" element={<Profile />} />
-          <Route path="settings" element={<Settings />} />
+          {/*<Route path="settings" element={<Settings />} />*/}
         </Route>
         {/* Redirect to home page by default */}
         <Route path="*" element={<Navigate to="/" replace />} />
