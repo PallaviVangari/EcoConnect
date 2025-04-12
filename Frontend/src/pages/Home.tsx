@@ -5,6 +5,7 @@ import { Textarea } from "../components/Textarea";
 import { Button } from "../components/Button";
 import UserProfileCard from "../components/UserProfileCard";
 import profileImage from "../components/profile.svg";
+import { ChatWidget } from "./ChatWidget.tsx";
 
 interface Post {
   postId?: string;
@@ -148,6 +149,7 @@ export const Home: React.FC = () => {
               ))
             )}
           </div>
+          <ChatWidget />
         </div>
       </div>
     </>

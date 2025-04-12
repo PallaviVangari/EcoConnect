@@ -3,8 +3,9 @@ import axios from "axios";
 import { useAuth0 } from "@auth0/auth0-react";
 import { Button } from "../components/Button";
 import { Text } from "../components/Text";
-import { Heading } from "../components/Heading";
-import { Img } from "../components/Img"; // Import Img component
+import { Img } from "../components/Img";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 type User = {
   id: string;
@@ -13,6 +14,9 @@ type User = {
   followers: string[];
   following: string[];
   isFollowing: boolean;
+  location?: string;
+  bio?: string;
+  profileImageUrl?: string;
 };
 
 export function Network() {
@@ -23,15 +27,14 @@ export function Network() {
   const [users, setUsers] = useState<User[]>([]);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const observer = useRef<IntersectionObserver | null>(null);
 
   const { user: currentUser, isAuthenticated } = useAuth0();
-
   const USERS_PER_PAGE = 25;
 
-  // API fetch logic
   const fetchUsers = useCallback(async () => {
-    if (!currentUser) return;
+    if (!currentUser || loading || !hasMore) return;
 
     setLoading(true);
     try {
@@ -45,46 +48,45 @@ export function Network() {
       const res = await axios.get(`http://localhost:8050${endpoint}`);
       const data: User[] = res.data;
 
-      // Filter out users that the current user is already following in the "discover" tab
       const filteredData =
         activeTab === "discover"
           ? data.filter((user) => !user.followers.includes(currentUser.sub))
           : data;
 
-      const pagedData =
-        activeTab === "discover"
-          ? filteredData.slice(0, USERS_PER_PAGE * page)
-          : filteredData;
+      const pagedData = filteredData.slice(0, USERS_PER_PAGE * page);
 
-      const usersWithFollowStatus = pagedData.map((user) => ({
-        ...user,
-        isFollowing: user.followers?.includes(currentUser.sub) || false,
-      }));
-
-      setUsers(usersWithFollowStatus);
+      if (pagedData.length === users.length) {
+        setHasMore(false);
+      } else {
+        const usersWithFollowStatus = pagedData.map((user) => ({
+          ...user,
+          isFollowing: user.followers?.includes(currentUser.sub) || false,
+        }));
+        setUsers(usersWithFollowStatus);
+      }
     } catch (error) {
       console.error("Error fetching users:", error);
     }
     setLoading(false);
-  }, [activeTab, currentUser, page]);
+  }, [activeTab, currentUser, page, hasMore, loading, users.length]);
 
   useEffect(() => {
     setPage(1);
     setUsers([]);
+    setHasMore(true);
   }, [activeTab]);
 
   useEffect(() => {
     if (isAuthenticated) fetchUsers();
-  }, [fetchUsers, activeTab, page, isAuthenticated]);
+  }, [fetchUsers, isAuthenticated]);
 
-  // Infinite scroll
   const lastUserRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
     if (activeTab !== "discover") return;
 
     if (observer.current) observer.current.disconnect();
     observer.current = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting && !loading) {
+      if (entries[0].isIntersecting && hasMore && !loading) {
         setPage((prev) => prev + 1);
       }
     });
@@ -92,7 +94,11 @@ export function Network() {
     if (lastUserRef.current) {
       observer.current.observe(lastUserRef.current);
     }
-  }, [users, loading, activeTab]);
+
+    return () => {
+      if (observer.current) observer.current.disconnect();
+    };
+  }, [users, loading, activeTab, hasMore]);
 
   const handleFollow = async (
     targetUserId: string,
@@ -107,23 +113,24 @@ export function Network() {
 
       await axios.post(`http://localhost:8050${endpoint}`);
 
-      setUsers((prev) =>
-        prev
-          .map((user) =>
+      setUsers((prev) => {
+        if (activeTab === "following") {
+          return prev.filter((user) => user.id !== targetUserId);
+        } else {
+          return prev.map((user) =>
             user.id === targetUserId
               ? { ...user, isFollowing: !currentlyFollowing }
               : user
-          )
-          .filter((user) => {
-            // Remove from 'Following' list if unfollowed
-            if (activeTab === "following" && currentlyFollowing) {
-              return user.id !== targetUserId;
-            }
-            return true; // Keep all users in 'Discover' tab
-          })
+          );
+        }
+      });
+
+      toast.success(
+        currentlyFollowing ? "Unfollowed successfully" : "Followed successfully"
       );
     } catch (err) {
       console.error("Error following/unfollowing user", err);
+      toast.error("Something went wrong");
     }
   };
 
@@ -133,46 +140,31 @@ export function Network() {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
+      <ToastContainer position="top-right" autoClose={2000} hideProgressBar />
+
       <div className="flex flex-grow">
         <div className="w-full py-10 md:py-12 flex-grow">
           <div className="container mx-auto px-6 md:px-8">
             {/* Tabs */}
             <div className="flex justify-between items-center mb-6">
               <div className="flex gap-10">
-                <Button
-                  onClick={() => setActiveTab("discover")}
-                  className={`${
-                    activeTab === "discover"
-                      ? "text-[#1d3016] border-b-4 border-[#1d3016] px-6 py-3 text-xl font-bold transition-all duration-300"
-                      : "text-[#1d3016] hover:bg-[#f0f0f0] border-b-4 border-transparent px-6 py-3 text-xl font-bold transition-all duration-300"
-                  } rounded-md`}
-                >
-                  Discover
-                </Button>
-                <Button
-                  onClick={() => setActiveTab("followers")}
-                  className={`${
-                    activeTab === "followers"
-                      ? "text-[#1d3016] border-b-4 border-[#1d3016] px-6 py-3 text-xl font-bold transition-all duration-300"
-                      : "text-[#1d3016] hover:bg-[#f0f0f0] border-b-4 border-transparent px-6 py-3 text-xl font-bold transition-all duration-300"
-                  } rounded-md`}
-                >
-                  Followers
-                </Button>
-                <Button
-                  onClick={() => setActiveTab("following")}
-                  className={`${
-                    activeTab === "following"
-                      ? "text-[#1d3016] border-b-4 border-[#1d3016] px-6 py-3 text-xl font-bold transition-all duration-300"
-                      : "text-[#1d3016] hover:bg-[#f0f0f0] border-b-4 border-transparent px-6 py-3 text-xl font-bold transition-all duration-300"
-                  } rounded-md`}
-                >
-                  Following
-                </Button>
+                {["discover", "followers", "following"].map((tab) => (
+                  <Button
+                    key={tab}
+                    onClick={() => setActiveTab(tab as any)}
+                    className={`${
+                      activeTab === tab
+                        ? "text-[#1d3016] border-b-4 border-[#1d3016] px-6 py-3 text-xl font-bold"
+                        : "text-[#1d3016] hover:bg-[#f0f0f0] border-b-4 border-transparent px-6 py-3 text-xl font-bold"
+                    } rounded-md transition-all duration-300`}
+                  >
+                    {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                  </Button>
+                ))}
               </div>
             </div>
 
-            {/* Search Input */}
+            {/* Search */}
             <div className="relative mb-6">
               <input
                 type="text"
@@ -183,7 +175,7 @@ export function Network() {
               />
             </div>
 
-            {/* User List */}
+            {/* User Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {loading && users.length === 0 ? (
                 <Text className="text-xl">Loading users...</Text>
@@ -196,41 +188,70 @@ export function Network() {
                     ref={
                       index === filteredUsers.length - 1 ? lastUserRef : null
                     }
-                    className="bg-white shadow-lg rounded-xl border-2 border-[#1d3016] p-4 hover:shadow-xl transition-all duration-300 w-80 h-auto flex flex-col justify-between"
+                    className="bg-white shadow-lg rounded-xl border border-[#1d3016] p-5 hover:shadow-xl transition-all duration-300 w-80"
                   >
-                    <div className="flex items-center gap-4 mb-4">
+                    <div className="flex items-center gap-4 mb-3">
                       <Img
-                        src="images/people.svg"
-                        alt="Profile Icon"
-                        className="w-14 h-14"
+                        src={user.profileImageUrl || "images/people.svg"}
+                        alt="Profile"
+                        className="w-14 h-14 rounded-full"
                       />
                       <div>
-                        <Text
-                          className="text-4xl font-bold text-[#1d3016]"
-                          style={{ fontSize: "1.5rem" }}
-                        >
+                        <Text className="text-lg font-semibold text-[#1d3016]">
                           {user.userName}
                         </Text>
-                        <Text className="text-gray-500 text-lg mt-1">
-                          {user.followers.length} Followers
-                        </Text>
+                        {user.bio && (
+                          <Text className="text-sm text-gray-600 mt-1">
+                            {user.bio}
+                          </Text>
+                        )}
                       </div>
                     </div>
-                    {/* <Text className="text-gray-600 text-sm mb-4">
-                      {user.email}
-                    </Text> */}
-                    <div className="flex justify-between items-center">
-                      <Button
-                        onClick={() => handleFollow(user.id, user.isFollowing)}
-                        className={`w-full rounded-md px-4 py-3 transition-all ${
-                          user.isFollowing
-                            ? "bg-red-600 text-white hover:bg-red-700"
-                            : "bg-[#1d3016] text-white hover:bg-[#162c10]"
-                        }`}
-                      >
-                        {user.isFollowing ? "Unfollow" : "Follow"}
-                      </Button>
+
+                    <div className="flex flex-col gap-2 mb-4">
+                      {user.location && (
+                        <div className="flex items-center text-sm text-gray-500">
+                          <Img
+                            src="images/location.svg"
+                            alt="Location Icon"
+                            className="w-4 h-4 mr-1"
+                          />
+                          {user.location}
+                        </div>
+                      )}
+                      <div className="flex items-center text-base font-medium text-gray-700 gap-4">
+                        <div className="flex items-center">
+                          <Img
+                            src="images/participants.svg"
+                            alt="Followers"
+                            className="w-5 h-5 mr-2"
+                          />
+                          <span>{user.followers.length} Followers</span>
+                        </div>
+                        <span className="text-lg font-semibold text-gray-400">
+                          |
+                        </span>
+                        <div className="flex items-center">
+                          <Img
+                            src="images/participants.svg"
+                            alt="Following"
+                            className="w-5 h-5 mr-2"
+                          />
+                          <span>{user.following.length} Following</span>
+                        </div>
+                      </div>
                     </div>
+
+                    <Button
+                      onClick={() => handleFollow(user.id, user.isFollowing)}
+                      className={`w-full rounded-md px-4 py-2 text-sm transition-all ${
+                        user.isFollowing
+                          ? "bg-red-600 text-white hover:bg-red-700"
+                          : "bg-[#1d3016] text-white hover:bg-[#162c10]"
+                      }`}
+                    >
+                      {user.isFollowing ? "Unfollow" : "Follow"}
+                    </Button>
                   </div>
                 ))
               )}

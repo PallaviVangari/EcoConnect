@@ -32,17 +32,11 @@ public class UserService {
         User user = userRepository.findUserByUserName(userName)
                 .orElseThrow(() -> new RuntimeException("User not found with username: " + userName));
 
-        if (updatedUser.getEmail() != null) {
-            user.setEmail(updatedUser.getEmail());
+        if(updatedUser.getBio() != null){
+            user.setBio(updatedUser.getBio());
         }
-        if (updatedUser.getUserName() != null) {
-            user.setUserName(updatedUser.getUserName());
-        }
-        if(updatedUser.getPassword() != null){
-            user.setPassword(updatedUser.getPassword());
-        }
-        if(updatedUser.getRole() != null){
-            user.setRole(updatedUser.getRole());
+        if(updatedUser.getLocation() != null){
+            user.setLocation(updatedUser.getLocation());
         }
         return userRepository.save(user);
     }
