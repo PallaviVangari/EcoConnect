@@ -3,7 +3,6 @@ import axios from "axios";
 import { useAuth0 } from "@auth0/auth0-react";
 import { Textarea } from "../components/Textarea";
 import { Button } from "../components/Button";
-import { Heading } from "../components/Heading";
 import UserProfileCard from "../components/UserProfileCard";
 import profileImage from "../components/profile.svg";
 

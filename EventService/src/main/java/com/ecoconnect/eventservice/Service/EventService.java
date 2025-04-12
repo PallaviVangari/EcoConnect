@@ -29,7 +29,7 @@ public class EventService {
     {
         validateEvent(event);
         Event savedEvent = eventRepository.save(event);
-        eventPublisher.publishEventCreated(savedEvent.getId(), savedEvent.getCreatorId(), savedEvent.getName());
+        //eventPublisher.publishEventCreated(savedEvent.getId(), savedEvent.getCreatorId(), savedEvent.getName());
 
         return savedEvent;
     }

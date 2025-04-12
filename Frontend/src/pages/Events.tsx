@@ -4,7 +4,8 @@ import { v4 as uuidv4 } from "uuid";
 import { Button } from "../components/Button";
 import { Text } from "../components/Text";
 import { Img } from "../components/Img";
-import { Heading } from "../components/Heading";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 interface Event {
   id: string;
@@ -46,21 +47,31 @@ export const Events: React.FC = () => {
 
         const data = await response.json();
         if (isMounted) {
-          const formattedEvents = data.map((event: any) => ({
-            id: event.id,
-            creatorId: event.creatorId,
-            title: event.name,
-            description: event.description,
-            location: event.location,
-            date: event.dateTime.split("T")[0],
-            time: event.dateTime.split("T")[1].substring(0, 5),
-          }));
+          const now = new Date(); // Current date and time
+
+          const formattedEvents = data
+            .map((event: any) => ({
+              id: event.id,
+              creatorId: event.creatorId,
+              title: event.name,
+              description: event.description,
+              location: event.location,
+              date: event.dateTime.split("T")[0],
+              time: event.dateTime.split("T")[1].substring(0, 5),
+              dateTime: new Date(event.dateTime), // Convert to Date object for comparison
+              participants: event.rsvpUsers ? event.rsvpUsers.length : 0, // Calculate number of participants
+            }))
+            .filter((event) => event.dateTime > now) // Exclude past events
+            .sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime()); // Sort by ascending timestamp
+
           setEvents(formattedEvents);
+
           if (user) {
             const userEvents = formattedEvents.filter(
               (event) => event.creatorId === user.sub
             );
             setUserEvents(userEvents);
+
             // Fetch registered events
             const registeredResponse = await fetch(
               `http://localhost:8060/api/events/eventsByUser/${user.sub}`
@@ -69,8 +80,8 @@ export const Events: React.FC = () => {
               throw new Error("Failed to fetch registered events");
 
             const registeredData = await registeredResponse.json();
-            const formattedRegisteredEvents = registeredData.map(
-              (event: any) => ({
+            const formattedRegisteredEvents = registeredData
+              .map((event: any) => ({
                 id: event.id,
                 creatorId: event.creatorId,
                 title: event.name,
@@ -78,8 +89,12 @@ export const Events: React.FC = () => {
                 location: event.location,
                 date: event.dateTime.split("T")[0],
                 time: event.dateTime.split("T")[1].substring(0, 5),
-              })
-            );
+                dateTime: new Date(event.dateTime), // Convert to Date object for comparison
+                participants: event.rsvpUsers ? event.rsvpUsers.length : 0, // Calculate number of participants
+              }))
+              .filter((event) => event.dateTime > now) // Exclude past events
+              .sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime()); // Sort by ascending timestamp
+
             setRegisteredEvents(formattedRegisteredEvents);
           }
         }
@@ -98,7 +113,7 @@ export const Events: React.FC = () => {
 
   const handleCreateEvent = async () => {
     if (!isAuthenticated || !user?.email) {
-      alert("You must be logged in to create an event.");
+      toast.error("You must be logged in to create an event.");
       return;
     }
 
@@ -126,7 +141,24 @@ export const Events: React.FC = () => {
       if (!response.ok) throw new Error("Failed to create event");
 
       const createdEvent = await response.json();
-      setEvents([...events, { ...createdEvent, title: createdEvent.name }]);
+
+      // Add the new event to the state immediately
+      const formattedEvent = {
+        id: createdEvent.id,
+        creatorId: createdEvent.creatorId,
+        title: createdEvent.name,
+        description: createdEvent.description,
+        location: createdEvent.location,
+        date: createdEvent.dateTime.split("T")[0],
+        time: createdEvent.dateTime.split("T")[1].substring(0, 5),
+        dateTime: new Date(createdEvent.dateTime),
+        participants: 0, // New event starts with 0 participants
+      };
+
+      setEvents((prevEvents) => [...prevEvents, formattedEvent]);
+      setUserEvents((prevUserEvents) => [...prevUserEvents, formattedEvent]);
+
+      // Reset the new event form
       setNewEvent({
         title: "",
         description: "",
@@ -134,15 +166,17 @@ export const Events: React.FC = () => {
         date: "",
         time: "",
       });
+
+      toast.success("Event created successfully!");
     } catch (error) {
       console.error("Error creating event:", error);
-      alert("Failed to create event.");
+      toast.error("Failed to create event.");
     }
   };
 
   const handleRSVP = async (eventId: string) => {
     if (!isAuthenticated || !user?.email) {
-      alert("You must be logged in to RSVP.");
+      toast.error("You must be logged in to RSVP for an event.");
       return;
     }
 
@@ -159,19 +193,16 @@ export const Events: React.FC = () => {
 
       if (!response.ok) throw new Error("Failed to RSVP");
 
-      // Find the event being registered
       const eventToRegister = events.find((event) => event.id === eventId);
       if (eventToRegister) {
-        alert("You have successfully registered for the event!");
-        // Add the event to registeredEvents and remove it from events
         setRegisteredEvents((prev) => [...prev, eventToRegister]);
         setEvents((prev) => prev.filter((event) => event.id !== eventId));
       }
 
-      alert("RSVP successful!");
+      toast.success("You have successfully registered for the event!");
     } catch (error) {
       console.error("Error RSVPing to event:", error);
-      alert("Failed to RSVP.");
+      toast.error("Failed to register for the event.");
     }
   };
 
@@ -201,10 +232,10 @@ export const Events: React.FC = () => {
       // Update the state to remove the deleted event
       setUserEvents(userEvents.filter((event) => event.id !== eventId));
       setEvents(events.filter((event) => event.id !== eventId));
-      alert("Event deleted successfully!");
+      toast.success("Event deleted successfully!");
     } catch (error) {
       console.error("Error deleting event:", error);
-      alert("Failed to delete event.");
+      toast.error("Failed to delete event.");
     }
   };
 
@@ -252,33 +283,44 @@ export const Events: React.FC = () => {
 
       const updatedEventResponse = await response.json();
 
-      // Update the state
+      // Update the state immediately
+      const formattedEvent = {
+        id: updatedEventResponse.id,
+        creatorId: updatedEventResponse.creatorId,
+        title: updatedEventResponse.name,
+        description: updatedEventResponse.description,
+        location: updatedEventResponse.location,
+        date: updatedEventResponse.dateTime.split("T")[0],
+        time: updatedEventResponse.dateTime.split("T")[1].substring(0, 5),
+        dateTime: new Date(updatedEventResponse.dateTime),
+        participants: updatedEventResponse.rsvpUsers
+          ? updatedEventResponse.rsvpUsers.length
+          : 0,
+      };
+
       setUserEvents((prevEvents) =>
         prevEvents.map((event) =>
-          event.id === editingEventId
-            ? { ...event, ...updatedEventResponse }
-            : event
+          event.id === editingEventId ? formattedEvent : event
         )
       );
       setEvents((prevEvents) =>
         prevEvents.map((event) =>
-          event.id === editingEventId
-            ? { ...event, ...updatedEventResponse }
-            : event
+          event.id === editingEventId ? formattedEvent : event
         )
       );
 
-      alert("Event updated successfully!");
+      toast.success("Event updated successfully!");
       setShowCreateEventModal(false);
       setEditingEventId(null);
     } catch (error) {
       console.error("Error updating event:", error);
-      alert("Failed to update event.");
+      toast.error("Failed to update event.");
     }
   };
 
   return (
     <>
+      <ToastContainer />
       <div className="min-h-screen flex flex-col bg-gray-50">
         <div className="flex flex-grow">
           <div className="w-full py-10 md:py-12 flex-grow">
@@ -373,6 +415,18 @@ export const Events: React.FC = () => {
                               <Text className="text-lg">{event.location}</Text>
                             </div>
 
+                            <div className="flex items-center gap-2 text-gray-600 text-xl mb-3">
+                              <Img
+                                src="images/participants.svg"
+                                alt="Participants"
+                                className="w-7 h-7"
+                              />
+                              <Text className="text-lg">
+                                {event.participants} participant
+                                {event.participants !== 1 ? "s" : ""}
+                              </Text>
+                            </div>
+
                             <Text className="text-gray-700 text-lg mb-5 flex-grow">
                               {event.description}
                             </Text>
@@ -431,6 +485,18 @@ export const Events: React.FC = () => {
                               className="w-7 h-7"
                             />
                             <Text className="text-lg">{event.location}</Text>
+                          </div>
+
+                          <div className="flex items-center gap-2 text-gray-600 text-xl mb-3">
+                            <Img
+                              src="images/participants.svg"
+                              alt="Participants"
+                              className="w-7 h-7"
+                            />
+                            <Text className="text-lg">
+                              {event.participants} participant
+                              {event.participants !== 1 ? "s" : ""}
+                            </Text>
                           </div>
 
                           <Text
@@ -503,6 +569,18 @@ export const Events: React.FC = () => {
                               className="w-7 h-7"
                             />
                             <Text className="text-lg">{event.location}</Text>
+                          </div>
+
+                          <div className="flex items-center gap-2 text-gray-600 text-xl mb-3">
+                            <Img
+                              src="images/participants.svg"
+                              alt="Participants"
+                              className="w-7 h-7"
+                            />
+                            <Text className="text-lg">
+                              {event.participants} participant
+                              {event.participants !== 1 ? "s" : ""}
+                            </Text>
                           </div>
 
                           <Text className="text-gray-700 text-lg mb-5 flex-grow">
