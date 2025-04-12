@@ -19,7 +19,10 @@ public class User {
     private String password;
     @Indexed(unique = true)
     private String email;
-    private String role;
     private Set<String> followers = new HashSet<>();
     private Set<String> following = new HashSet<>();
+    private String location;
+    private String bio;
+    private String profileImageUrl;
+
 }
