@@ -192,9 +192,9 @@ export function Network() {
                   >
                     <div className="flex items-center gap-4 mb-3">
                       <Img
-                        src={user.profileImageUrl || "images/people.svg"}
+                        src={user.profileImageUrl || "images/profilepic.svg"}
                         alt="Profile"
-                        className="w-14 h-14 rounded-full"
+                        className="w-15 h-14 rounded-full"
                       />
                       <div>
                         <Text className="text-lg font-semibold text-[#1d3016]">

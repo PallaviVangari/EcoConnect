@@ -4,7 +4,7 @@ import { useAuth0 } from "@auth0/auth0-react";
 import { Textarea } from "../components/Textarea";
 import { Button } from "../components/Button";
 import UserProfileCard from "../components/UserProfileCard";
-import profileImage from "../components/profile.svg";
+import profileImage from "../components/profilepic.svg";
 import { ChatWidget } from "./ChatWidget.tsx";
 
 interface Post {
