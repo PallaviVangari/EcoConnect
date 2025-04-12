@@ -6,6 +6,8 @@ import { Button } from "../components/Button";
 import UserProfileCard from "../components/UserProfileCard";
 import profileImage from "../components/profilepic.svg";
 import { ChatWidget } from "./ChatWidget.tsx";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 interface Post {
   postId?: string;
@@ -46,12 +48,12 @@ export const Home: React.FC = () => {
   // Handle post submission
   const handlePostSubmit = async () => {
     if (!isAuthenticated || !user?.sub) {
-      setMessage("You're not logged in");
+      toast.error("You're not logged in");
       return;
     }
 
     if (content.trim().length === 0 || content.trim().length > 250) {
-      setMessage("Post must be between 1 and 250 characters");
+      toast.error("Post must be between 1 and 250 characters");
       return;
     }
 
@@ -67,9 +69,11 @@ export const Home: React.FC = () => {
 
     try {
       await axios.post("http://localhost:8090/api/post/createPost", post);
+      toast.success("Post created successfully!");
+      fetchFeed(); // Refresh the feed after posting
     } catch (error) {
       console.error("Error creating post:", error);
-      setMessage("Failed to create post");
+      toast.error("Failed to create post");
     }
   };
 
@@ -87,12 +91,14 @@ export const Home: React.FC = () => {
       if (data.length === 0) {
         console.log("No data from backend, using dummy data.");
         setFeed(getDummyFeed());
+        toast.info("No posts available. Showing sample data.");
       } else {
         setFeed(data);
+        toast.success("Feed loaded successfully!");
       }
     } catch (error) {
       console.error("Error fetching feed:", error);
-      setMessage("Failed to load feed");
+      toast.error("Failed to load feed");
       setFeed(getDummyFeed()); // Use dummy data on error
     } finally {
       setLoading(false);
@@ -107,6 +113,7 @@ export const Home: React.FC = () => {
 
   return (
     <>
+      <ToastContainer position="top-right" autoClose={3000} hideProgressBar />
       <div className="flex justify-center">
         <div className="w-full max-w-xl flex flex-col gap-[30px]">
           {" "}
