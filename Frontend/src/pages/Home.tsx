@@ -5,8 +5,8 @@ import { Textarea } from "../components/Textarea";
 import { Button } from "../components/Button";
 import UserProfileCard from "../components/UserProfileCard";
 import profileImage from "../components/profile.svg";
-import { ChatWidget } from "./ChatWidget.tsx";
 import { formatDistanceToNow } from "date-fns";
+import {Chatbot} from "./Chatbot.tsx";
 
 
 interface Post {
@@ -162,7 +162,7 @@ export const Home: React.FC = () => {
 
             )}
           </div>
-          <ChatWidget />
+          <Chatbot />
         </div>
       </div>
     </>
