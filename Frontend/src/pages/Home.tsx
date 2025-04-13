@@ -6,12 +6,15 @@ import { Button } from "../components/Button";
 import UserProfileCard from "../components/UserProfileCard";
 import profileImage from "../components/profile.svg";
 import { ChatWidget } from "./ChatWidget.tsx";
+import { formatDistanceToNow } from "date-fns";
+
 
 interface Post {
   postId?: string;
   content: string;
   authorId: string;
   createdDate?: string;
+  authorName?: string;
 }
 
 export const Home: React.FC = () => {
@@ -28,18 +31,21 @@ export const Home: React.FC = () => {
       content: "This is a sample post about eco-friendly living!",
       authorId: "user1",
       createdDate: new Date().toISOString(),
+      authorName: "User1",
     },
     {
       postId: "2",
       content: "Check out this amazing event happening in our community!",
       authorId: "user2",
-      createdDate: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
+      createdDate: new Date(Date.now() - 3600000).toISOString(),
+      authorName: "User2",
     },
     {
       postId: "3",
       content: "Recycling tips: Always rinse your containers before recycling.",
       authorId: "user3",
-      createdDate: new Date(Date.now() - 7200000).toISOString(), // 2 hours ago
+      createdDate: new Date(Date.now() - 7200000).toISOString(),
+      authorName: "User3",
     },
   ];
 
@@ -80,7 +86,7 @@ export const Home: React.FC = () => {
     setLoading(true);
     try {
       const res = await axios.get(
-        `http://localhost:8095/api/feed/${user.sub}?limit=10`
+        `http://localhost:8095/api/feed/${user.sub}?limit=100`
       );
       const data = res.data;
 
@@ -133,20 +139,27 @@ export const Home: React.FC = () => {
             ) : feed.length === 0 ? (
               <p className="text-center text-gray-500">No posts available.</p>
             ) : (
-              feed.map((post) => (
-                <div
-                  key={post.postId}
-                  className="flex flex-col gap-4 p-4 border rounded-md bg-gray-50 shadow-md"
-                >
-                  <div className="flex gap-3 items-start">
-                    <UserProfileCard
-                      userName={post.authorId}
-                      postContent={post.content}
-                      profileImage={profileImage}
-                    />
-                  </div>
-                </div>
-              ))
+
+                feed.map((post) => (
+                    <div
+                        key={post.postId}
+                        className="flex flex-col gap-4 p-4 border rounded-md bg-gray-50 shadow-md"
+                    >
+                      <div className="flex gap-3 items-start">
+                        <UserProfileCard
+                            userName={post.authorName}
+                            postContent={post.content}
+                            profileImage={profileImage}
+                        />
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {post.createdDate
+                            ? formatDistanceToNow(new Date(post.createdDate), { addSuffix: true })
+                            : "Just now"}
+                      </div>
+                    </div>
+                ))
+
             )}
           </div>
           <ChatWidget />

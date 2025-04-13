@@ -242,6 +242,7 @@ export function Network() {
                       </div>
                     </div>
 
+                    {isAuthenticated && user.id !== currentUser?.sub && activeTab !== "followers" && (
                     <Button
                       onClick={() => handleFollow(user.id, user.isFollowing)}
                       className={`w-full rounded-md px-4 py-2 text-sm transition-all ${
@@ -252,6 +253,7 @@ export function Network() {
                     >
                       {user.isFollowing ? "Unfollow" : "Follow"}
                     </Button>
+                        )}
                   </div>
                 ))
               )}

@@ -18,4 +18,5 @@ public class FeedPost {
     private String authorId;
     private String content;
     private LocalDateTime createdDate;
+    private String authorName;
 }

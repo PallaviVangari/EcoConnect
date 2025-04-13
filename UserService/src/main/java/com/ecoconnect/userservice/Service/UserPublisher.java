@@ -44,6 +44,16 @@ public class UserPublisher {
         System.out.println("User unfollowed message sent");
     }
 
+    public void publishUserCreatedEvent(String userId, String userName){
+        Map<String, Object> message = new HashMap<>();
+        message.put("messageType", "USER_CREATED");
+        message.put("userId", userId);
+        message.put("userName", userName);
+
+        sendMessage("user-notifications", message);
+        System.out.println("User created message sent");
+    }
+
     // Generic method to send JSON messages
     private void sendMessage(String topic, Map<String, Object> message) {
         try {
