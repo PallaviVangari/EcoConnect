@@ -149,7 +149,7 @@ export const Home: React.FC = () => {
                         <UserProfileCard
                             userName={post.authorName}
                             postContent={post.content}
-                            profileImage={profileImage}
+                            // profileImage={profileImage}
                         />
                       </div>
                       <div className="text-sm text-gray-500">
@@ -162,7 +162,6 @@ export const Home: React.FC = () => {
 
             )}
           </div>
-          <Chatbot />
         </div>
       </div>
     </>
