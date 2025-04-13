@@ -169,7 +169,7 @@ const Chat: React.FC<ChatProps> = ({ sellerId, productName, senderId, productId,
       } catch (error) {
         console.error("Error polling messages:", error);
       }
-    }, 5000); // Poll every 5 seconds
+    }, 1000); // Poll every 1 seconds
 
     return () => clearInterval(pollInterval);
   }, [useWebSocket, loading, sellerId, productId, APIURL]);
