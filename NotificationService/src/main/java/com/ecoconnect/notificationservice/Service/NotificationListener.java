@@ -33,6 +33,10 @@ public class NotificationListener {
         try {
             JsonNode json = objectMapper.readTree(message);
             String messageType = json.get("messageType").asText();
+
+            if(messageType.equals("USER_CREATED"))
+                    return;
+
             String followerId = json.get("followerId").asText();
             String followeeId = json.get("followeeId").asText();
 

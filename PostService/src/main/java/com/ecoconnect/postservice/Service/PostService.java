@@ -56,7 +56,7 @@ public class PostService {
 
     public List<Post> getPostsByAuthorId(String userId)
     {
-        return postRepository.findByAuthorId(userId);
+        return postRepository.findByAuthorIdOrderByCreatedDateDesc(userId);
     }
 
     public Optional<Post> updatePostByPostId(String userId, String postId, Post post, boolean isAdmin) {

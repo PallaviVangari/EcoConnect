@@ -8,20 +8,24 @@ import profileImage from "../components/profilepic.svg";
 import { ChatWidget } from "./ChatWidget.tsx";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { formatDistanceToNow } from "date-fns";
 
 interface Post {
   postId?: string;
   content: string;
   authorId: string;
   createdDate?: string;
+  authorName?: string;
 }
 
 export const Home: React.FC = () => {
   const [content, setContent] = useState("");
   const [message, setMessage] = useState("");
   const [feed, setFeed] = useState<Post[]>([]);
-  const [loading, setLoading] = useState(false); // Added loading state
-  const { logout, user, isAuthenticated } = useAuth0();
+  const [loading, setLoading] = useState(false);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const { user, isAuthenticated } = useAuth0();
+  const hasFetchedRef = useRef(false);
 
   // Dummy data for fallback
   const getDummyFeed = (): Post[] => [
@@ -30,18 +34,21 @@ export const Home: React.FC = () => {
       content: "This is a sample post about eco-friendly living!",
       authorId: "user1",
       createdDate: new Date().toISOString(),
+      authorName: "User1",
     },
     {
       postId: "2",
       content: "Check out this amazing event happening in our community!",
       authorId: "user2",
-      createdDate: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
+      createdDate: new Date(Date.now() - 3600000).toISOString(),
+      authorName: "User2",
     },
     {
       postId: "3",
       content: "Recycling tips: Always rinse your containers before recycling.",
       authorId: "user3",
-      createdDate: new Date(Date.now() - 7200000).toISOString(), // 2 hours ago
+      createdDate: new Date(Date.now() - 7200000).toISOString(),
+      authorName: "User3",
     },
   ];
 
@@ -71,45 +78,86 @@ export const Home: React.FC = () => {
       await axios.post("http://localhost:8090/api/post/createPost", post);
       toast.success("Post created successfully!");
       fetchFeed(); // Refresh the feed after posting
+      hasFetchedRef.current = false;
+      fetchFeed(); // refresh full feed after new post
     } catch (error) {
       console.error("Error creating post:", error);
       toast.error("Failed to create post");
     }
   };
 
-  // Fetch feed data
+  // Initial full fetch
   const fetchFeed = async () => {
-    if (!user?.sub) return;
+    if (!user?.sub || hasFetchedRef.current) return;
 
     setLoading(true);
+    hasFetchedRef.current = true;
+
     try {
       const res = await axios.get(
-        `http://localhost:8095/api/feed/${user.sub}?limit=10`
+          `http://localhost:8095/api/feed/${user.sub}?limit=50`
       );
-      const data = res.data;
+      const data: Post[] = res.data;
 
-      if (data.length === 0) {
-        console.log("No data from backend, using dummy data.");
-        setFeed(getDummyFeed());
-        toast.info("No posts available. Showing sample data.");
-      } else {
-        setFeed(data);
-        toast.success("Feed loaded successfully!");
-      }
+      const seen = new Set<string>();
+      const unique = data.filter((p) => {
+        if (!p.postId || seen.has(p.postId)) return false;
+        seen.add(p.postId);
+        return true;
+      });
+
+      setFeed(unique.length > 0 ? unique : getDummyFeed());
     } catch (error) {
       console.error("Error fetching feed:", error);
       toast.error("Failed to load feed");
       setFeed(getDummyFeed()); // Use dummy data on error
+      setMessage("Failed to load feed");
+      setFeed(getDummyFeed());
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      fetchFeed();
+  // Auto-refresh (new posts only)
+  const fetchNewPosts = async () => {
+    if (!user?.sub || feed.length === 0 || document.hidden) return;
+
+    const latest = feed[0].createdDate;
+    if (!latest) return;
+
+    try {
+      const res = await axios.get(
+          `http://localhost:8095/api/feed/${user.sub}?limit=50&newerThan=${latest}`
+      );
+      const newPosts: Post[] = res.data;
+
+      const seen = new Set(feed.map((p) => p.postId));
+      const filtered = newPosts.filter(
+          (p) => p.postId && !seen.has(p.postId)
+      );
+
+      if (filtered.length > 0) {
+        setFeed((prev) => [...filtered, ...prev]);
+      }
+    } catch (err) {
+      console.error("Error checking for new posts:", err);
     }
-  }, [isAuthenticated]);
+  };
+
+  // Initial + polling
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    fetchFeed(); // initial
+
+    intervalRef.current = setInterval(() => {
+      fetchNewPosts();
+    }, 15000); // every 15 seconds
+
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [isAuthenticated, user?.sub, feed]);
 
   return (
     <>
@@ -140,23 +188,29 @@ export const Home: React.FC = () => {
             ) : feed.length === 0 ? (
               <p className="text-center text-gray-500">No posts available.</p>
             ) : (
-              feed.map((post) => (
-                <div
-                  key={post.postId}
-                  className="flex flex-col gap-4 p-4 border rounded-md bg-gray-50 shadow-md"
-                >
-                  <div className="flex gap-3 items-start">
-                    <UserProfileCard
-                      userName={post.authorId}
-                      postContent={post.content}
-                      profileImage={profileImage}
-                    />
-                  </div>
-                </div>
-              ))
+                feed.map((post) => (
+                    <div
+                        key={post.postId}
+                        className="flex flex-col gap-4 p-4 border rounded-md bg-gray-50 shadow-md"
+                    >
+                      <div className="flex gap-3 items-start">
+                        <UserProfileCard
+                            userName={post.authorName}
+                            postContent={post.content}
+                            profileImage={profileImage}
+                        />
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {post.createdDate
+                            ? formatDistanceToNow(new Date(post.createdDate), {
+                              addSuffix: true,
+                            })
+                            : "Just now"}
+                      </div>
+                    </div>
+                ))
             )}
           </div>
-          <ChatWidget />
         </div>
       </div>
     </>

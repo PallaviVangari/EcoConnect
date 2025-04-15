@@ -25,7 +25,9 @@ public class UserService {
         if (userRepository.findUserByEmail(user.getEmail()).isPresent()) {
             throw new RuntimeException("Email already exists!");
         }
-        return userRepository.save(user);
+        User createdUser =  userRepository.save(user);
+        userPublisher.publishUserCreatedEvent(user.getId(), user.getUserName());
+        return createdUser;
     }
 
     public User updateUser(String userName, User updatedUser) {

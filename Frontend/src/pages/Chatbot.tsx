@@ -37,17 +37,30 @@ export function Chatbot() {
     setInput('');
     setIsLoading(true);
 
-    // Simulate bot response
-    setTimeout(() => {
+    try {
+      const response = await fetch('http://127.0.0.1:5000/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ message: input })
+      });
+
+      const data = await response.json();
+
       const botMessage: ChatbotMessage = {
         id: (Date.now() + 1).toString(),
-        content: getBotResponse(input),
+        content: data.reply,
         timestamp: new Date().toISOString(),
         type: 'bot'
       };
+
       setMessages(prev => [...prev, botMessage]);
+    } catch (error) {
+      console.error('Error fetching chatbot response:', error);
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   const getBotResponse = (userInput: string): string => {

@@ -39,6 +39,9 @@ public class UserEventListener {
                 case "USER_UNFOLLOWED":
                     handleUnfollowEvent(event);
                     break;
+                case "USER_CREATED":
+                    handleUserCreatedEvent(event);
+                    break;
                 default:
                     System.out.println("Unknown message type: " + messageType);
             }
@@ -85,5 +88,18 @@ public class UserEventListener {
 
             System.out.println("User " + followerId + " unfollowed " + followeeId);
         }
+    }
+
+    private void handleUserCreatedEvent(JsonNode event){
+        String userid = event.get("userId").asText();
+        String username = event.get("userName").asText();
+
+        if(userRepository.findById(userid).isPresent())
+            return;
+
+        User user = new User(userid);
+        user.setUserName(username);
+
+        userRepository.save(user);
     }
 }

@@ -1,5 +1,6 @@
 package com.ecoconnect.feedservice.Service;
 
+import com.ecoconnect.feedservice.Repository.UserRepository;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,12 +17,15 @@ public class PostEventListener {
 
     private final RedisTemplate<String, Object> redisTemplate;
     private final FeedPostRepository feedPostRepository;
+
+    private final UserRepository userRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Autowired
-    public PostEventListener(RedisTemplate<String, Object> redisTemplate, FeedPostRepository feedPostRepository) {
+    public PostEventListener(RedisTemplate<String, Object> redisTemplate, FeedPostRepository feedPostRepository, UserRepository userRepository) {
         this.redisTemplate = redisTemplate;
         this.feedPostRepository = feedPostRepository;
+        this.userRepository = userRepository;
     }
 
     @KafkaListener(topics = "post-notifications", groupId = "feed-service-group")
@@ -46,9 +50,10 @@ public class PostEventListener {
         String postId = event.get("postId").asText();
         String creatorId = event.get("authorId").asText();
         LocalDateTime createdTime = LocalDateTime.parse(event.get("timestamp").asText());
+        String authorName = userRepository.findById(creatorId).isPresent() ? userRepository.findById(creatorId).get().getUserName() : "";
 
         // Store post in MongoDB
-        FeedPost feedPost = new FeedPost(postId, creatorId, event.get("content").asText(),createdTime);
+        FeedPost feedPost = new FeedPost(postId, creatorId, event.get("content").asText(),createdTime, authorName);
         feedPostRepository.save(feedPost);
 
         // Add to creator's recent posts in Redis

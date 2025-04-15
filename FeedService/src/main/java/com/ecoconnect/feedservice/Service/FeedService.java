@@ -8,6 +8,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -27,20 +29,36 @@ public class FeedService {
         this.userRepository = userRepository;
     }
 
-    public List<FeedPost> getFeed(String userId, int limit) {
+    public List<FeedPost> getFeed(String userId, int limit, String olderThan) {
         Set<String> followees = getFollowees(userId);
         if (followees.isEmpty())
             return Collections.emptyList();
 
-        Set<FeedPost> feedPosts = fetchFeedPostsFromRedis(followees, limit);
+        Set<FeedPost> combined = new TreeSet<>(Comparator.comparing(FeedPost::getCreatedDate).reversed());
 
-        if (feedPosts.size() < limit) {
-            List<FeedPost> additionalPosts = fetchFeedPostsFromMongoDB(followees.stream().toList(), limit - feedPosts.size());
-            cacheFeedPostsToRedis(additionalPosts);
-            feedPosts.addAll(additionalPosts);
+        // Fetch from Redis
+        Set<FeedPost> redisPosts = fetchFeedPostsFromRedis(followees, limit, olderThan);
+        combined.addAll(redisPosts);
+
+        // If Redis doesn't have enough, fallback to Mongo
+        if (combined.size() < limit) {
+            List<FeedPost> mongoPosts = fetchFeedPostsFromMongoDB(followees.stream().toList(), limit - combined.size(), olderThan);
+
+            // Deduplicate based on postId
+            Set<String> seenIds = combined.stream().map(FeedPost::getPostId).collect(Collectors.toSet());
+            List<FeedPost> newOnly = mongoPosts.stream()
+                    .filter(p -> !seenIds.contains(p.getPostId()))
+                    .toList();
+
+            combined.addAll(newOnly);
+            cacheFeedPostsToRedis(newOnly); // Cache only new ones
         }
 
-        return feedPosts.stream().limit(limit).collect(Collectors.toList());
+        // Final sorted + limited result
+        return combined.stream()
+                .sorted(Comparator.comparing(FeedPost::getCreatedDate).reversed())
+                .limit(limit)
+                .toList();
     }
 
     private Set<String> getFollowees(String userId) {
@@ -51,21 +69,36 @@ public class FeedService {
         }
 
         User user = userRepository.findUserFollowing(userId);
-        Set<String> followees = (user != null) ? user.getFollowing() : Collections.EMPTY_SET;
+        Set<String> followees = (user != null) ? user.getFollowing() : Collections.emptySet();
         if (followees != null && !followees.isEmpty())
-            updateFolloweesInRedis(userId,followees );
+            updateFolloweesInRedis(userId,followees);
 
         return followees;
     }
 
-    private Set<FeedPost> fetchFeedPostsFromRedis(Set<String> followees, int limit) {
+    private Set<FeedPost> fetchFeedPostsFromRedis(Set<String> followees, int limit, String olderThan) {
         Set<FeedPost> feedPosts = new TreeSet<>(Comparator.comparing(FeedPost::getCreatedDate).reversed());
 
+        Long maxScore = null;
+        if (olderThan != null && !olderThan.isEmpty()) {
+            maxScore = LocalDateTime.parse(olderThan).toEpochSecond(ZoneOffset.UTC);
+        }
+
         for (String followeeId : followees) {
-            Set<Object> postIds = redisTemplate.opsForZSet().reverseRange("recent_posts:" + followeeId, 0, limit - 1);
+            Set<Object> postIds;
+            if (maxScore != null) {
+                postIds = redisTemplate.opsForZSet().reverseRangeByScore(
+                        "recent_posts:" + followeeId, 0, maxScore - 1, 0, limit
+                );
+            } else {
+                postIds = redisTemplate.opsForZSet().reverseRange(
+                        "recent_posts:" + followeeId, 0, limit - 1
+                );
+            }
+
             if (postIds != null) {
                 List<FeedPost> posts = feedPostRepository.findAllById(
-                        postIds.stream().map(Object::toString).collect(Collectors.toList())
+                        postIds.stream().map(Object::toString).toList()
                 );
                 feedPosts.addAll(posts);
             }
@@ -74,20 +107,26 @@ public class FeedService {
         return feedPosts;
     }
 
-    private List<FeedPost> fetchFeedPostsFromMongoDB(List<String> followees, int remainingPosts) {
-        return feedPostRepository.findByAuthorIdInOrderByCreatedDateDesc(followees)
-                .stream()
-                .limit(remainingPosts)
-                .collect(Collectors.toList());
+    private List<FeedPost> fetchFeedPostsFromMongoDB(List<String> followees, int limit, String olderThan) {
+        if (olderThan == null || olderThan.isEmpty()) {
+            return feedPostRepository.findByAuthorIdInOrderByCreatedDateDesc(followees)
+                    .stream().limit(limit).toList();
+        } else {
+            LocalDateTime cutoff = LocalDateTime.parse(olderThan);
+            return feedPostRepository.findByAuthorIdInAndCreatedDateBeforeOrderByCreatedDateDesc(followees, cutoff)
+                    .stream().limit(limit).toList();
+        }
     }
 
-
-
-    private void cacheFeedPostsToRedis( List<FeedPost> posts) {
+    private void cacheFeedPostsToRedis(List<FeedPost> posts) {
         for (FeedPost post : posts) {
             String key = "recent_posts:" + post.getAuthorId();
-            redisTemplate.opsForZSet().add(key, post.getPostId(), post.getCreatedDate().toEpochSecond(ZoneOffset.UTC));
-            redisTemplate.opsForZSet().removeRange(key, 0, -51); // Keep latest 50 posts
+            redisTemplate.opsForZSet().add(
+                    key,
+                    post.getPostId(),
+                    post.getCreatedDate().toEpochSecond(ZoneOffset.UTC)
+            );
+            redisTemplate.opsForZSet().removeRange(key, 0, -51);
         }
     }
 

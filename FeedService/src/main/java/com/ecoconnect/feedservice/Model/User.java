@@ -15,6 +15,7 @@ public class User {
     @Id
     private String id;
     private Set<String> following = new HashSet<>(); // Stores followees
+    private String userName;
 
     public User(String id) {
         this.id = id;

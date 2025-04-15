@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useAuth0 } from "@auth0/auth0-react";
 import axios from "axios";
 import {
@@ -39,6 +39,8 @@ export function Profile() {
   const { user, isAuthenticated } = useAuth0();
   const [userData, setUserData] = useState<User | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
+  const [displayedPosts, setDisplayedPosts] = useState<Post[]>([]);
+  const [page, setPage] = useState(1);
   const [editPostId, setEditPostId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState("");
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -47,6 +49,10 @@ export function Profile() {
     bio: "",
     profileImage: "",
   });
+
+  const POSTS_PER_PAGE = 5;
+  const observer = useRef<IntersectionObserver | null>(null);
+  const lastPostRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -63,6 +69,8 @@ export function Profile() {
           `http://localhost:8090/api/post/getUserPosts/${fetchedUser.id}`
         );
         setPosts(postsRes.data);
+        setDisplayedPosts(postsRes.data.slice(0, POSTS_PER_PAGE));
+        setPage(1);
       } catch (error) {
         console.error("Error fetching profile data", error);
       }
@@ -81,8 +89,29 @@ export function Profile() {
     }
   }, [userData]);
 
+  useEffect(() => {
+    if (observer.current) observer.current.disconnect();
+    observer.current = new IntersectionObserver((entries) => {
+      if (
+          entries[0].isIntersecting &&
+          displayedPosts.length < posts.length
+      ) {
+        const nextPage = page + 1;
+        const nextSlice = posts.slice(0, nextPage * POSTS_PER_PAGE);
+        setDisplayedPosts(nextSlice);
+        setPage(nextPage);
+      }
+    });
+
+    if (lastPostRef.current) {
+      observer.current.observe(lastPostRef.current);
+    }
+
+    return () => observer.current?.disconnect();
+  }, [posts, displayedPosts, page]);
+
   const handleEdit = (post: Post) => {
-    setEditPostId(post.postId);
+    setEditPostId(post.postId || null);
     setEditContent(post.content);
   };
 
@@ -100,6 +129,11 @@ export function Profile() {
           post.postId === postId ? { ...post, content: editContent } : post
         )
       );
+      setDisplayedPosts((prev) =>
+          prev.map((post) =>
+              post.postId === postId ? { ...post, content: editContent } : post
+          )
+      );
       setEditPostId(null);
       toast.success("Post updated successfully!");
     } catch (error) {
@@ -114,7 +148,9 @@ export function Profile() {
       await axios.delete(
         `http://localhost:8090/api/post/deletePost/${userData.id}/${postId}?isAdmin=false`
       );
-      setPosts((prev) => prev.filter((post) => post.postId !== postId));
+      const filtered = posts.filter((post) => post.postId !== postId);
+      setPosts(filtered);
+      setDisplayedPosts(filtered.slice(0, page * POSTS_PER_PAGE));
       toast.success("Post deleted successfully!");
     } catch (error) {
       console.error("Failed to delete post", error);
@@ -151,7 +187,8 @@ export function Profile() {
     }
   };
 
-  const formatDate = (isoDate: string) => {
+  const formatDate = (isoDate?: string) => {
+    if (!isoDate) return "N/A";
     try {
       const date = new Date(isoDate);
       if (isNaN(date.getTime())) return "Invalid date";
@@ -173,10 +210,9 @@ export function Profile() {
     );
 
   return (
-    <div className="max-w-4xl mx-auto mt-10 p-6 bg-gray-50">
-      <ToastContainer position="top-right" autoClose={3000} hideProgressBar />
-      {/* Profile Card */}
-      <div className="bg-white border border-[#1d3016] shadow-lg rounded-xl p-6 mb-8">
+    <div className="max-w-3xl mx-auto mt-10 p-4 h-[calc(100vh-64px)] flex flex-col">
+      {/* Sticky Profile Card */}
+      <div className="sticky top-16 z-10 bg-white border shadow-lg rounded-2xl p-6 mb-4">
         <div className="flex items-center gap-4 mb-4">
           <UserIcon className="w-10 h-10 text-[#1d3016]" />
           <h1 className="text-3xl font-semibold text-[#1d3016]">
@@ -200,23 +236,22 @@ export function Profile() {
             <UserPlus size={18} className="text-[#1d3016]" />{" "}
             <strong>Following:</strong> {userData?.following.length}
           </p>
-          <p className="flex items-center gap-2">
-            📍 <strong>Location:</strong> {userData?.location || "N/A"}
-          </p>
-          <p className="flex items-center gap-2">
-            📝 <strong>About me:</strong> {userData?.bio || "N/A"}
-          </p>
+          <p className="flex items-center gap-2">📍 <strong>Location:</strong> {userData?.location || "N/A"}</p>
+          <p className="flex items-center gap-2">📝 <strong>About me:</strong> {userData?.bio || "N/A"}</p>
           <button
             onClick={() => setIsEditingProfile(true)}
-            className="absolute bottom-4 right-4 bg-[#1d3016] text-white rounded-full p-2 shadow hover:bg-[#162c10] transition-all"
+            className="absolute bottom-4 right-4 bg-white border rounded-full p-2 shadow hover:bg-gray-100 group"
           >
-            <Pencil size={18} />
+            <Pencil size={18} className="text-gray-600 group-hover:text-black" />
+            <span className="absolute -top-8 left-1/2 transform -translate-x-1/2 text-xs bg-black text-white px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+              Edit
+            </span>
           </button>
         </div>
-      </div>
+     </div>
 
       {/* Edit Profile Modal */}
-      {isEditingProfile && (
+    {isEditingProfile && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
           <div className="bg-white p-6 rounded-lg shadow-md w-full max-w-md space-y-4">
             <h2 className="text-xl font-semibold text-[#1d3016] mb-2">
@@ -258,14 +293,16 @@ export function Profile() {
         </div>
       )}
 
-      {/* Posts Section */}
-      <div>
+      {/* Scrollable Posts Section */}
+      <div className="flex-1 overflow-y-auto pr-1">
         <h2 className="text-2xl font-bold mb-4 text-[#1d3016]">Your Posts</h2>
         <ul className="space-y-4">
-          {posts.map((post) => (
+          {displayedPosts.map((post, index) => (
             <li
               key={post.postId}
               className="bg-white p-4 border border-[#1d3016] rounded-xl shadow"
+              ref={index === displayedPosts.length - 1 ? lastPostRef : null}
+              className="bg-white p-4 border rounded-xl shadow"
             >
               {editPostId === post.postId ? (
                 <>
@@ -306,7 +343,7 @@ export function Profile() {
                     </button>
                     <button
                       className="flex items-center gap-1 text-red-600 hover:underline"
-                      onClick={() => handleDelete(post.postId)}
+                      onClick={() => handleDelete(post.postId!)}
                     >
                       <Trash2 size={16} /> Delete
                     </button>
@@ -316,6 +353,9 @@ export function Profile() {
             </li>
           ))}
         </ul>
+        {displayedPosts.length === posts.length && (
+            <p className="text-center text-gray-500 mt-4">No more posts to show.</p>
+        )}
       </div>
     </div>
   );
