@@ -1,13 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { useAuth0 } from "@auth0/auth0-react";
 import { Textarea } from "../components/Textarea";
 import { Button } from "../components/Button";
 import UserProfileCard from "../components/UserProfileCard";
-import profileImage from "../components/profile.svg";
 import { formatDistanceToNow } from "date-fns";
-import {Chatbot} from "./Chatbot.tsx";
-
 
 interface Post {
   postId?: string;
@@ -21,10 +18,12 @@ export const Home: React.FC = () => {
   const [content, setContent] = useState("");
   const [message, setMessage] = useState("");
   const [feed, setFeed] = useState<Post[]>([]);
-  const [loading, setLoading] = useState(false); // Added loading state
-  const { logout, user, isAuthenticated } = useAuth0();
+  const [loading, setLoading] = useState(false);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const { user, isAuthenticated } = useAuth0();
+  const hasFetchedRef = useRef(false);
 
-  // Dummy data for fallback
+  // Dummy fallback
   const getDummyFeed = (): Post[] => [
     {
       postId: "1",
@@ -49,7 +48,7 @@ export const Home: React.FC = () => {
     },
   ];
 
-  // Handle post submission
+  // Handle post creation
   const handlePostSubmit = async () => {
     if (!isAuthenticated || !user?.sub) {
       setMessage("You're not logged in");
@@ -61,62 +60,98 @@ export const Home: React.FC = () => {
       return;
     }
 
-    // Prepare the post object
     const post: Post = {
       content: content.trim(),
       authorId: user.sub,
     };
 
-    // **Clear the input immediately** for a smooth UI
     setContent("");
     setMessage("");
 
     try {
       await axios.post("http://localhost:8090/api/post/createPost", post);
+      hasFetchedRef.current = false;
+      fetchFeed(); // refresh full feed after new post
     } catch (error) {
       console.error("Error creating post:", error);
       setMessage("Failed to create post");
     }
   };
 
-  // Fetch feed data
+  // Initial full fetch
   const fetchFeed = async () => {
-    if (!user?.sub) return;
+    if (!user?.sub || hasFetchedRef.current) return;
 
     setLoading(true);
+    hasFetchedRef.current = true;
+
     try {
       const res = await axios.get(
-        `http://localhost:8095/api/feed/${user.sub}?limit=100`
+          `http://localhost:8095/api/feed/${user.sub}?limit=50`
       );
-      const data = res.data;
+      const data: Post[] = res.data;
 
-      if (data.length === 0) {
-        console.log("No data from backend, using dummy data.");
-        setFeed(getDummyFeed());
-      } else {
-        setFeed(data);
-      }
+      const seen = new Set<string>();
+      const unique = data.filter((p) => {
+        if (!p.postId || seen.has(p.postId)) return false;
+        seen.add(p.postId);
+        return true;
+      });
+
+      setFeed(unique.length > 0 ? unique : getDummyFeed());
     } catch (error) {
       console.error("Error fetching feed:", error);
       setMessage("Failed to load feed");
-      setFeed(getDummyFeed()); // Use dummy data on error
+      setFeed(getDummyFeed());
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      fetchFeed();
+  // Auto-refresh (new posts only)
+  const fetchNewPosts = async () => {
+    if (!user?.sub || feed.length === 0 || document.hidden) return;
+
+    const latest = feed[0].createdDate;
+    if (!latest) return;
+
+    try {
+      const res = await axios.get(
+          `http://localhost:8095/api/feed/${user.sub}?limit=50&newerThan=${latest}`
+      );
+      const newPosts: Post[] = res.data;
+
+      const seen = new Set(feed.map((p) => p.postId));
+      const filtered = newPosts.filter(
+          (p) => p.postId && !seen.has(p.postId)
+      );
+
+      if (filtered.length > 0) {
+        setFeed((prev) => [...filtered, ...prev]);
+      }
+    } catch (err) {
+      console.error("Error checking for new posts:", err);
     }
-  }, [isAuthenticated]);
+  };
+
+  // Initial + polling
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    fetchFeed(); // initial
+
+    intervalRef.current = setInterval(() => {
+      fetchNewPosts();
+    }, 15000); // every 15 seconds
+
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [isAuthenticated, user?.sub, feed]);
 
   return (
-    <>
       <div className="flex justify-center">
         <div className="w-full max-w-xl flex flex-col gap-[30px]">
-          {" "}
-          {/* Increased width */}
           <div className="flex flex-col gap-2.5">
             <Textarea
               placeholder="What's happening?"
@@ -127,7 +162,7 @@ export const Home: React.FC = () => {
             <Button
               onClick={handlePostSubmit}
               className="mt-2 bg-[#1D3016] text-white rounded-md py-2 w-full"
-              disabled={loading} // Disable button while loading
+              disabled={loading}
             >
               {loading ? "Posting..." : "Post"}
             </Button>
@@ -139,7 +174,6 @@ export const Home: React.FC = () => {
             ) : feed.length === 0 ? (
               <p className="text-center text-gray-500">No posts available.</p>
             ) : (
-
                 feed.map((post) => (
                     <div
                         key={post.postId}
@@ -149,21 +183,20 @@ export const Home: React.FC = () => {
                         <UserProfileCard
                             userName={post.authorName}
                             postContent={post.content}
-                            // profileImage={profileImage}
                         />
                       </div>
                       <div className="text-sm text-gray-500">
                         {post.createdDate
-                            ? formatDistanceToNow(new Date(post.createdDate), { addSuffix: true })
+                            ? formatDistanceToNow(new Date(post.createdDate), {
+                              addSuffix: true,
+                            })
                             : "Just now"}
                       </div>
                     </div>
                 ))
-
             )}
           </div>
         </div>
       </div>
-    </>
   );
 };

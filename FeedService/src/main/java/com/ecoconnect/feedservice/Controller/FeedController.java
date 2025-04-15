@@ -19,7 +19,7 @@ public class FeedController {
     }
 
     @GetMapping("/{userId}")
-    public List<FeedPost> getUserFeed(@PathVariable String userId, @RequestParam(defaultValue = "10") int limit) {
-        return feedService.getFeed(userId, limit);
+    public List<FeedPost> getUserFeed(@PathVariable String userId, @RequestParam(defaultValue = "50") int limit, @RequestParam(required = false) String olderThan) {
+        return feedService.getFeed(userId, limit, olderThan);
     }
 }
