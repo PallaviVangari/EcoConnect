@@ -17,7 +17,7 @@ import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 interface Post {
-  postId?: string;
+  postId: string;
   content: string;
   authorId: string;
   createdDate?: string;
@@ -52,7 +52,7 @@ export function Profile() {
 
   const POSTS_PER_PAGE = 5;
   const observer = useRef<IntersectionObserver | null>(null);
-  const lastPostRef = useRef<HTMLDivElement | null>(null);
+  const lastPostRef = useRef<HTMLLIElement | null>(null);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -301,8 +301,7 @@ export function Profile() {
             <li
               key={post.postId}
               className="bg-white p-4 border border-[#1d3016] rounded-xl shadow"
-              ref={index === displayedPosts.length - 1 ? lastPostRef : null}
-              className="bg-white p-4 border rounded-xl shadow"
+              ref={index === displayedPosts.length - 1 ? lastPostRef : undefined}
             >
               {editPostId === post.postId ? (
                 <>

@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, {useState, useEffect, useRef} from "react";
 import axios from "axios";
 import { useAuth0 } from "@auth0/auth0-react";
 import { Textarea } from "../components/Textarea";
 import { Button } from "../components/Button";
 import UserProfileCard from "../components/UserProfileCard";
 import profileImage from "../components/profilepic.svg";
-import { ChatWidget } from "./ChatWidget.tsx";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { formatDistanceToNow } from "date-fns";
@@ -23,7 +22,7 @@ export const Home: React.FC = () => {
   const [message, setMessage] = useState("");
   const [feed, setFeed] = useState<Post[]>([]);
   const [loading, setLoading] = useState(false);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<number | null>(null);
   const { user, isAuthenticated } = useAuth0();
   const hasFetchedRef = useRef(false);
 
@@ -150,7 +149,7 @@ export const Home: React.FC = () => {
 
     fetchFeed(); // initial
 
-    intervalRef.current = setInterval(() => {
+    intervalRef.current = window.setInterval(() => {
       fetchNewPosts();
     }, 15000); // every 15 seconds
 
