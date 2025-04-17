@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useAuth0 } from "@auth0/auth0-react";
+import Config from "../config/config.ts";
 import axios from "axios";
 import {
   User as UserIcon,
@@ -60,7 +61,7 @@ export function Profile() {
 
       try {
         const res = await axios.get<User>(
-          `http://localhost:8050/api/users/getUserById/${user.sub}`
+          `${Config.USER_SERVICE_URL}/getUserById/${user.sub}`
         );
         const fetchedUser = res.data;
         setUserData(fetchedUser);
@@ -170,7 +171,7 @@ export function Profile() {
 
     try {
       const res = await axios.put(
-        `http://localhost:8050/api/users/${userData.userName}`,
+        `${Config.USER_SERVICE_URL}/${userData.userName}`,
         {
           ...userData,
           location: profileForm.location,

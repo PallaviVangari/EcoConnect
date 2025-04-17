@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useAuth0 } from "@auth0/auth0-react";
+import Config from "../config/config.ts"
 import axios from "axios";
 
 // Define a User type to match the backend model
@@ -39,7 +40,7 @@ const RegisterUser: React.FC = () => {
 
                     // Make the POST request to register the user
                     const response = await axios.post(
-                        "http://localhost:8050/api/users/create",
+                        `${Config.USER_SERVICE_URL}/create`,
                         userData,
                         {
                             headers: {
