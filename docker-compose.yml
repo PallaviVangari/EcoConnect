@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  user-service:
+    build:
+      context: ./UserService
+    ports:
+      - "8050:8050"
+
+  marketplace-service:
+    build:
+      context: ./MarketplaceService
+    ports:
+      - "8070:8070"
+
+  event-service:
+    build:
+      context: ./EventService
+    ports:
+      - "8060:8060"
+
+  frontend:
+    build:
+      context: ./frontend  # Path to your frontend directory
+    ports:
+      - "5173:5173"  # Map port 5173 to the container's port 80 (for production use nginx)
+
+
+  post-service:
+    build:
+      context: ./PostService
+    ports:
+      - "8090:8090"
+
+  feed-service:
+    build:
+      context: ./FeedService
+    ports:
+      - "8095:8095"
+
+  redis:
+    image: redis:6.0.7
+    container_name: redis
+    restart: always
+    volumes:
+      - redis_volume_data:/data
+    ports:
+      - 6379:6379
