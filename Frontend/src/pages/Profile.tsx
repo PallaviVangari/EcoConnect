@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useAuth0 } from "@auth0/auth0-react";
+import Config from "../config/config.ts";
 import axios from "axios";
 import {
   User as UserIcon,
@@ -60,13 +61,13 @@ export function Profile() {
 
       try {
         const res = await axios.get<User>(
-          `http://localhost:8050/api/users/getUserById/${user.sub}`
+          `${Config.USER_SERVICE_URL}/getUserById/${user.sub}`
         );
         const fetchedUser = res.data;
         setUserData(fetchedUser);
 
         const postsRes = await axios.get<Post[]>(
-          `http://localhost:8090/api/post/getUserPosts/${fetchedUser.id}`
+          `${Config.POST_SERVICE_URL}/getUserPosts/${fetchedUser.id}`
         );
         setPosts(postsRes.data);
         setDisplayedPosts(postsRes.data.slice(0, POSTS_PER_PAGE));
@@ -119,7 +120,7 @@ export function Profile() {
     if (!userData) return;
     try {
       await axios.put(
-        `http://localhost:8090/api/post/updatePost/${userData.id}/${postId}?isAdmin=false`,
+        `${Config.POST_SERVICE_URL}/updatePost/${userData.id}/${postId}?isAdmin=false`,
         {
           content: editContent,
         }
@@ -146,7 +147,7 @@ export function Profile() {
     if (!userData) return;
     try {
       await axios.delete(
-        `http://localhost:8090/api/post/deletePost/${userData.id}/${postId}?isAdmin=false`
+        `${Config.POST_SERVICE_URL}/deletePost/${userData.id}/${postId}?isAdmin=false`
       );
       const filtered = posts.filter((post) => post.postId !== postId);
       setPosts(filtered);
@@ -170,7 +171,7 @@ export function Profile() {
 
     try {
       const res = await axios.put(
-        `http://localhost:8050/api/users/${userData.userName}`,
+        `${Config.USER_SERVICE_URL}/${userData.userName}`,
         {
           ...userData,
           location: profileForm.location,

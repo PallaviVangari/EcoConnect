@@ -8,6 +8,7 @@ import profileImage from "../components/profilepic.svg";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { formatDistanceToNow } from "date-fns";
+import Config from "../config/config.ts";
 
 interface Post {
   postId?: string;
@@ -74,7 +75,7 @@ export const Home: React.FC = () => {
     setMessage("");
 
     try {
-      await axios.post("http://localhost:8090/api/post/createPost", post);
+      await axios.post(`${Config.POST_SERVICE_URL}/createPost`, post);
       toast.success("Post created successfully!");
       fetchFeed(); // Refresh the feed after posting
       hasFetchedRef.current = false;
@@ -94,7 +95,7 @@ export const Home: React.FC = () => {
 
     try {
       const res = await axios.get(
-          `http://localhost:8095/api/feed/${user.sub}?limit=50`
+          `${Config.FEED_SERVICE_URL}/${user.sub}?limit=50`
       );
       const data: Post[] = res.data;
 
@@ -126,7 +127,7 @@ export const Home: React.FC = () => {
 
     try {
       const res = await axios.get(
-          `http://localhost:8095/api/feed/${user.sub}?limit=50&newerThan=${latest}`
+          `${Config.FEED_SERVICE_URL}/${user.sub}?limit=50&newerThan=${latest}`
       );
       const newPosts: Post[] = res.data;
 

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Send, Bot, User, Loader2 } from 'lucide-react';
 import type { ChatbotMessage } from '../types';
+import Config from "../config/config.ts";
 
 export function Chatbot() {
   const [messages, setMessages] = React.useState([
@@ -38,7 +39,7 @@ export function Chatbot() {
     setIsLoading(true);
 
     try {
-      const response = await fetch('http://127.0.0.1:5000/api/chat', {
+      const response = await fetch(`${Config.CHATBOT_SERVICE_URL}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

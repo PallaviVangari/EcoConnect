@@ -6,6 +6,7 @@ import { Text } from "../components/Text";
 import { Img } from "../components/Img";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import Config from "../config/config.ts";
 
 type User = {
   id: string;
@@ -39,14 +40,14 @@ export function Network() {
 
     setLoading(true);
     try {
-      let endpoint = `/api/users/getAllUsers`;
+      let endpoint = `/getAllUsers`;
       if (activeTab === "followers") {
-        endpoint = `/api/users/${currentUser.sub}/followers`;
+        endpoint = `/${currentUser.sub}/followers`;
       } else if (activeTab === "following") {
-        endpoint = `/api/users/${currentUser.sub}/following`;
+        endpoint = `/${currentUser.sub}/following`;
       }
 
-      const res = await axios.get(`http://localhost:8050${endpoint}`);
+      const res = await axios.get(`${Config.USER_SERVICE_URL}${endpoint}`);
       const data: User[] = res.data;
 
       const filteredData =
@@ -114,15 +115,17 @@ export function Network() {
 
     try {
       const endpoint = currentlyFollowing
-        ? `/api/users/${currentUser.sub}/unfollow/${targetUserId}`
-        : `/api/users/${currentUser.sub}/follow/${targetUserId}`;
+        ? `/${currentUser.sub}/unfollow/${targetUserId}`
+        : `/${currentUser.sub}/follow/${targetUserId}`;
 
-      await axios.post(`http://localhost:8050${endpoint}`);
+      await axios.post(`${Config.USER_SERVICE_URL}${endpoint}`);
 
       setUsers((prev) => {
         if (activeTab === "following") {
+          // Immediately remove the user from list
           return prev.filter((user) => user.id !== targetUserId);
         } else {
+          // Just toggle the follow state
           return prev.map((user) =>
             user.id === targetUserId
               ? { ...user, isFollowing: !currentlyFollowing }
