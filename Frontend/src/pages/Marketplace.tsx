@@ -7,6 +7,7 @@ import { Img } from "../components/Img";
 import { Heading } from "../components/Heading";
 import { useNavigate } from "react-router-dom";
 import  Chat  from "./Chat";
+import Config from "../config/config.ts";
 
 interface Product {
   id: string;
@@ -53,7 +54,7 @@ export const Marketplace: React.FC = () => {
 
   const fetchProducts = async () => {
     try {
-      const res = await axios.get("http://localhost:8070/api/marketplace/getAllProducts");
+      const res = await axios.get(`${Config.MARKETPLACE_SERVICE_URL}/getAllProducts`);
       setProducts(res.data);
     } catch (err) {
       console.error("Error fetching products:", err);
@@ -63,7 +64,7 @@ export const Marketplace: React.FC = () => {
   const fetchUserProducts = async () => {
     if (!user) return;
     try {
-      const res = await axios.get(`http://localhost:8070/api/marketplace/seller/${user.sub}/products`);
+      const res = await axios.get(`${Config.MARKETPLACE_SERVICE_URL}/seller/${user.sub}/products`);
       setUserProducts(res.data);
     } catch (err) {
       console.error("Error fetching user products:", err);
@@ -75,10 +76,10 @@ export const Marketplace: React.FC = () => {
     try {
       const productData = { ...newProduct, sellerId: user.sub };
       if (editingProduct) {
-        await axios.put(`http://localhost:8070/api/marketplace/${editingProduct.id}/updateProduct/${user.sub}`, productData);
+        await axios.put(`${Config.MARKETPLACE_SERVICE_URL}/${editingProduct.id}/updateProduct/${user.sub}`, productData);
         setEditingProduct(null);
       } else {
-        await axios.post("http://localhost:8070/api/marketplace/createProduct", productData);
+        await axios.post(`${Config.MARKETPLACE_SERVICE_URL}/createProduct`, productData);
       }
       setNewProduct({ name: "", description: "", price: 0 });
       setShowProductModal(false);
@@ -91,7 +92,7 @@ export const Marketplace: React.FC = () => {
   const deleteProduct = async (productId: string) => {
     if (!user) return;
     try {
-      await axios.delete(`http://localhost:8070/api/marketplace/${productId}/deleteProduct/${user.sub}`);
+      await axios.delete(`${Config.MARKETPLACE_SERVICE_URL}/${productId}/deleteProduct/${user.sub}`);
       fetchUserProducts();
     } catch (err) {
       console.error("Error deleting product:", err);
@@ -122,7 +123,7 @@ export const Marketplace: React.FC = () => {
       message: chatInput,
     };
     try {
-      const res = await axios.post("http://localhost:8070/api/marketplace/messages", message);
+      const res = await axios.post(`${Config.MARKETPLACE_SERVICE_URL}/messages`, message);
       setChatMessages((prev) => [...prev, res.data]);
       setChatInput("");
     } catch (err) {

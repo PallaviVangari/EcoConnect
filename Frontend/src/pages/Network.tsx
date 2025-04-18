@@ -40,14 +40,14 @@ export function Network() {
 
     setLoading(true);
     try {
-      let endpoint = `/api/users/getAllUsers`;
+      let endpoint = `/getAllUsers`;
       if (activeTab === "followers") {
-        endpoint = `/api/users/${currentUser.sub}/followers`;
+        endpoint = `/${currentUser.sub}/followers`;
       } else if (activeTab === "following") {
-        endpoint = `/api/users/${currentUser.sub}/following`;
+        endpoint = `/${currentUser.sub}/following`;
       }
 
-      const res = await axios.get(`http://localhost:8050${endpoint}`);
+      const res = await axios.get(`${Config.USER_SERVICE_URL}${endpoint}`);
       const data: User[] = res.data;
 
       const filteredData =
