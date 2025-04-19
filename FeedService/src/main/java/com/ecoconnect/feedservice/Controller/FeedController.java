@@ -9,7 +9,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/feed")
-@CrossOrigin(origins = "*")
 public class FeedController {
 
     private final FeedService feedService;

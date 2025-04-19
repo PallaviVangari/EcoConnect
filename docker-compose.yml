@@ -49,10 +49,19 @@ services:
       - kafka
       - redis
 
+  notification-service:
+    build:
+      context: ./NotificationService
+    ports:
+      - "8085:8085"
+    depends_on:
+      - kafka
+
   redis:
     image: redis:latest
     container_name: redis
     restart: always
+    command: ["redis-server", "--requirepass", "Squad@123"]
     volumes:
       - redis_volume_data:/data
     ports:
