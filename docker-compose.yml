@@ -47,25 +47,24 @@ services:
       - "8095:8095"
     depends_on:
       - kafka
-      - redis
 
-  notification-service:
-    build:
-      context: ./NotificationService
-    ports:
-      - "8085:8085"
-    depends_on:
-      - kafka
+#  notification-service:
+#    build:
+#      context: ./NotificationService
+#    ports:
+#      - "8085:8085"
+#    depends_on:
+#      - kafka
 
-  redis:
-    image: redis:latest
-    container_name: redis
-    restart: always
-    command: ["redis-server", "--requirepass", "Squad@123"]
-    volumes:
-      - redis_volume_data:/data
-    ports:
-      - 6379:6379
+#  redis:
+#    image: redis:latest
+#    container_name: redis
+#    restart: always
+#    command: ["redis-server", "--requirepass", "Squad@123"]
+#    volumes:
+#      - redis_volume_data:/data
+#    ports:
+#      - 6379:6379
 
   kafka:
     image: apache/kafka-native:latest
@@ -96,16 +95,16 @@ services:
     depends_on:
       - kafka
 
-  redis-commander:
-    image: rediscommander/redis-commander:latest
-    container_name: redis-commander
-    restart: always
-    environment:
-      REDIS_HOSTS: local:redis:6379
-    ports:
-      - "8081:8081"
-    depends_on:
-      - redis
+#  redis-commander:
+#    image: rediscommander/redis-commander:latest
+#    container_name: redis-commander
+#    restart: always
+#    environment:
+#      REDIS_HOSTS: local:redis:6379
+#    ports:
+#      - "8081:8081"
+#    depends_on:
+#      - redis
 
 networks:
   mynetwork:
