@@ -1,0 +1,114 @@
+version: '3.8'
+
+services:
+  user-service:
+    build:
+      context: ./UserService
+    ports:
+      - "8050:8050"
+    depends_on:
+      - kafka
+
+  marketplace-service:
+    build:
+      context: ./MarketplaceService
+    ports:
+      - "8070:8070"
+    depends_on:
+      - kafka
+
+  event-service:
+    build:
+      context: ./EventService
+    ports:
+      - "8060:8060"
+    depends_on:
+      - kafka
+
+  frontend:
+    build:
+      context: ./frontend  # Path to your frontend directory
+    ports:
+      - "5173:5173"  # Map port 5173 to the container's port 80 (for production use nginx)
+
+
+  post-service:
+    build:
+      context: ./PostService
+    ports:
+      - "8090:8090"
+    depends_on:
+      - kafka
+
+  feed-service:
+    build:
+      context: ./FeedService
+    ports:
+      - "8095:8095"
+    depends_on:
+      - kafka
+
+#  notification-service:
+#    build:
+#      context: ./NotificationService
+#    ports:
+#      - "8085:8085"
+#    depends_on:
+#      - kafka
+
+#  redis:
+#    image: redis:latest
+#    container_name: redis
+#    restart: always
+#    command: ["redis-server", "--requirepass", "Squad@123"]
+#    volumes:
+#      - redis_volume_data:/data
+#    ports:
+#      - 6379:6379
+
+  kafka:
+    image: apache/kafka-native:latest
+    container_name: kafka
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_LISTENERS: DOCKER://0.0.0.0:9093,HOST://0.0.0.0:9092,CONTROLLER://0.0.0.0:9091
+      KAFKA_ADVERTISED_LISTENERS: DOCKER://kafka:9093,HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: DOCKER:PLAINTEXT,HOST:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: DOCKER
+
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9091
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+
+  kafka-ui:
+    image: kafbat/kafka-ui:main
+    ports:
+      - "8080:8080"  # Change the host port to 8081
+    environment:
+      DYNAMIC_CONFIG_ENABLED: "true"
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9093
+    depends_on:
+      - kafka
+
+#  redis-commander:
+#    image: rediscommander/redis-commander:latest
+#    container_name: redis-commander
+#    restart: always
+#    environment:
+#      REDIS_HOSTS: local:redis:6379
+#    ports:
+#      - "8081:8081"
+#    depends_on:
+#      - redis
+
+networks:
+  mynetwork:
+    driver: bridge
+
+volumes:
+  redis_volume_data:
