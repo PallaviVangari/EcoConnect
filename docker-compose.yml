@@ -47,9 +47,10 @@ services:
       - "8095:8095"
     depends_on:
       - kafka
+      - redis
 
   redis:
-    image: redis:6.0.7
+    image: redis:latest
     container_name: redis
     restart: always
     volumes:
@@ -58,33 +59,37 @@ services:
       - 6379:6379
 
   kafka:
-    image: apache/kafka:latest
+    image: apache/kafka-native:latest
     container_name: kafka
     ports:
       - "9092:9092"
-      - "9091:9091"
-      - "9093:9093"
     environment:
-      KAFKA_LISTENERS: CONTROLLER://localhost:9091,HOST://0.0.0.0:9092,DOCKER://0.0.0.0:9093
-      KAFKA_ADVERTISED_LISTENERS: HOST://localhost:9092,DOCKER://kafka:9093
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,DOCKER:PLAINTEXT,HOST:PLAINTEXT
+      KAFKA_LISTENERS: DOCKER://0.0.0.0:9093,HOST://0.0.0.0:9092,CONTROLLER://0.0.0.0:9091
+      KAFKA_ADVERTISED_LISTENERS: DOCKER://kafka:9093,HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: DOCKER:PLAINTEXT,HOST:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: DOCKER
+
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9091
-      KAFKA_INTER_BROKER_LISTENER_NAME: DOCKER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9091
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
 
   kafka-ui:
     image: kafbat/kafka-ui:main
-    container_name: kafka-ui
     ports:
-      - "8081:8080"
+      - "8080:8080"  # Change the host port to 8081
     environment:
       DYNAMIC_CONFIG_ENABLED: "true"
       KAFKA_CLUSTERS_0_NAME: local
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9093
     depends_on:
       - kafka
+
+networks:
+  mynetwork:
+    driver: bridge
+
 volumes:
   redis_volume_data:
