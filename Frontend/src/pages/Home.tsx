@@ -125,6 +125,12 @@ export const Home: React.FC = () => {
       setLoading(false);
     }
   };
+  const toLocalDateTimeFormat = (iso: string): string => {
+    const date = new Date(iso);
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+  };
+
 
   const fetchOlderPosts = async () => {
     if (!user?.sub || feed.length === 0 || loading) return;
@@ -132,11 +138,14 @@ export const Home: React.FC = () => {
     const oldest = feed[feed.length - 1]?.createdDate;
     if (!oldest) return;
 
+
+    const formattedOlderThan = toLocalDateTimeFormat(oldest);
+
     setLoading(true);
     try {
       const res = await axios.get(
           `${Config.FEED_SERVICE_URL}/${user.sub}?limit=50&olderThan=${encodeURIComponent(
-              oldest
+              formattedOlderThan
           )}`
       );
       const newPosts: Post[] = res.data;
