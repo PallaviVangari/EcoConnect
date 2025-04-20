@@ -27,7 +27,7 @@ services:
 
   frontend:
     build:
-      context: ./frontend  # Path to your frontend directory
+      context: ./Frontend  # Path to your frontend directory
     ports:
       - "5173:5173"  # Map port 5173 to the container's port 80 (for production use nginx)
 
