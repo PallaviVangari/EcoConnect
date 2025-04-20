@@ -1,10 +1,14 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import axios from "axios";
 import { useAuth0 } from "@auth0/auth0-react";
 import { Textarea } from "../components/Textarea";
 import { Button } from "../components/Button";
 import UserProfileCard from "../components/UserProfileCard";
+import profileImage from "../components/profilepic.svg";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import { formatDistanceToNow } from "date-fns";
+import Config from "../config/config.ts";
 
 interface Post {
   postId?: string;
@@ -19,11 +23,24 @@ export const Home: React.FC = () => {
   const [message, setMessage] = useState("");
   const [feed, setFeed] = useState<Post[]>([]);
   const [loading, setLoading] = useState(false);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const { user, isAuthenticated } = useAuth0();
-  const hasFetchedRef = useRef(false);
 
-  // Dummy fallback
+  const observer = useRef<IntersectionObserver | null>(null);
+  const lastPostRef = useCallback(
+      (node: HTMLDivElement | null) => {
+        if (loading) return;
+        if (observer.current) observer.current.disconnect();
+        observer.current = new IntersectionObserver((entries) => {
+          if (entries[0].isIntersecting) {
+            fetchOlderPosts();
+          }
+        });
+        if (node) observer.current.observe(node);
+      },
+      [loading, feed]
+  );
+
+  // Dummy data for fallback
   const getDummyFeed = (): Post[] => [
     {
       postId: "1",
@@ -48,46 +65,46 @@ export const Home: React.FC = () => {
     },
   ];
 
-  // Handle post creation
+  // Handle post submission
   const handlePostSubmit = async () => {
     if (!isAuthenticated || !user?.sub) {
-      setMessage("You're not logged in");
+      toast.error("You're not logged in");
       return;
     }
 
     if (content.trim().length === 0 || content.trim().length > 250) {
-      setMessage("Post must be between 1 and 250 characters");
+      toast.error("Post must be between 1 and 250 characters");
       return;
     }
 
+    // Prepare the post object
     const post: Post = {
       content: content.trim(),
       authorId: user.sub,
     };
 
+    // **Clear the input immediately** for a smooth UI
     setContent("");
     setMessage("");
 
     try {
-      await axios.post("http://localhost:8090/api/post/createPost", post);
-      hasFetchedRef.current = false;
-      fetchFeed(); // refresh full feed after new post
+      await axios.post(`${Config.POST_SERVICE_URL}/createPost`, post);
+      toast.success("Post created successfully!");
+      fetchFeed(); // refresh feed after post
     } catch (error) {
       console.error("Error creating post:", error);
-      setMessage("Failed to create post");
+      toast.error("Failed to create post");
     }
   };
 
   // Initial full fetch
   const fetchFeed = async () => {
-    if (!user?.sub || hasFetchedRef.current) return;
+    if (!user?.sub) return;
 
     setLoading(true);
-    hasFetchedRef.current = true;
-
     try {
       const res = await axios.get(
-          `http://localhost:8095/api/feed/${user.sub}?limit=50`
+          `${Config.FEED_SERVICE_URL}/${user.sub}?limit=50`
       );
       const data: Post[] = res.data;
 
@@ -101,23 +118,26 @@ export const Home: React.FC = () => {
       setFeed(unique.length > 0 ? unique : getDummyFeed());
     } catch (error) {
       console.error("Error fetching feed:", error);
-      setMessage("Failed to load feed");
+      toast.error("Failed to load feed");
       setFeed(getDummyFeed());
+      setMessage("Failed to load feed");
     } finally {
       setLoading(false);
     }
   };
 
-  // Auto-refresh (new posts only)
-  const fetchNewPosts = async () => {
-    if (!user?.sub || feed.length === 0 || document.hidden) return;
+  const fetchOlderPosts = async () => {
+    if (!user?.sub || feed.length === 0 || loading) return;
 
-    const latest = feed[0].createdDate;
-    if (!latest) return;
+    const oldest = feed[feed.length - 1]?.createdDate;
+    if (!oldest) return;
 
+    setLoading(true);
     try {
       const res = await axios.get(
-          `http://localhost:8095/api/feed/${user.sub}?limit=50&newerThan=${latest}`
+          `${Config.FEED_SERVICE_URL}/${user.sub}?limit=50&olderThan=${encodeURIComponent(
+              oldest
+          )}`
       );
       const newPosts: Post[] = res.data;
 
@@ -127,62 +147,60 @@ export const Home: React.FC = () => {
       );
 
       if (filtered.length > 0) {
-        setFeed((prev) => [...filtered, ...prev]);
+        setFeed((prev) => [...prev, ...filtered]);
       }
     } catch (err) {
-      console.error("Error checking for new posts:", err);
+      console.error("Error fetching older posts:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Initial + polling
   useEffect(() => {
     if (!isAuthenticated) return;
-
-    fetchFeed(); // initial
-
-    intervalRef.current = setInterval(() => {
-      fetchNewPosts();
-    }, 15000); // every 15 seconds
-
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, [isAuthenticated, user?.sub, feed]);
+    fetchFeed();
+  }, [isAuthenticated, user?.sub]);
 
   return (
+    <>
+      <ToastContainer position="top-right" autoClose={3000} hideProgressBar />
       <div className="flex justify-center">
         <div className="w-full max-w-xl flex flex-col gap-[30px]">
           <div className="flex flex-col gap-2.5">
             <Textarea
-              placeholder="What's happening?"
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              className="mt-2 w-full p-4 border border-[#1D3016] rounded-md shadow-md focus:outline-none focus:ring-2 focus:ring-[#1D3016]"
+                placeholder="What's happening?"
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                className="mt-2 w-full p-4 border border-[#1D3016] rounded-md shadow-md focus:outline-none focus:ring-2 focus:ring-[#1D3016]"
             />
             <Button
-              onClick={handlePostSubmit}
-              className="mt-2 bg-[#1D3016] text-white rounded-md py-2 w-full"
-              disabled={loading}
+                onClick={handlePostSubmit}
+                className="mt-2 bg-[#1D3016] text-white rounded-md py-2 w-full"
+                disabled={loading}
             >
               {loading ? "Posting..." : "Post"}
             </Button>
             {message && <p className="text-sm text-red-500 mt-2">{message}</p>}
           </div>
           <div className="mt-4 flex flex-col gap-4">
-            {loading ? (
+            {loading && feed.length === 0 ? (
               <p className="text-center text-gray-500">Loading feed...</p>
             ) : feed.length === 0 ? (
               <p className="text-center text-gray-500">No posts available.</p>
             ) : (
-                feed.map((post) => (
+                feed.map((post, index) => {
+                  const isLast = index === feed.length - 1;
+                  return (
                     <div
                         key={post.postId}
+                        ref={isLast ? lastPostRef : null}
                         className="flex flex-col gap-4 p-4 border rounded-md bg-gray-50 shadow-md"
                     >
                       <div className="flex gap-3 items-start">
                         <UserProfileCard
                             userName={post.authorName}
                             postContent={post.content}
+                            profileImage={profileImage}
                         />
                       </div>
                       <div className="text-sm text-gray-500">
@@ -193,10 +211,15 @@ export const Home: React.FC = () => {
                             : "Just now"}
                       </div>
                     </div>
-                ))
+                );
+              })
+          )}
+          {loading && feed.length > 0 && (
+              <p className="text-center text-gray-500">Loading more...</p>
             )}
           </div>
         </div>
       </div>
+    </>
   );
 };
