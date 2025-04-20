@@ -6,6 +6,7 @@ import { Text } from "../components/Text";
 import { Img } from "../components/Img";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import Config from "../config/config.ts";
 
 interface Event {
   id: string;
@@ -40,7 +41,7 @@ export const Events: React.FC = () => {
     const fetchEvents = async () => {
       try {
         const response = await fetch(
-          "http://localhost:8060/api/events/getAllEvents"
+          `${Config.EVENT_SERVICE_URL}/getAllEvents`
         );
         if (!response.ok)
           throw new Error(`Failed to fetch events: ${response.statusText}`);
@@ -74,7 +75,7 @@ export const Events: React.FC = () => {
 
             // Fetch registered events
             const registeredResponse = await fetch(
-              `http://localhost:8060/api/events/eventsByUser/${user.sub}`
+              `${Config.EVENT_SERVICE_URL}/eventsByUser/${user.sub}`
             );
             if (!registeredResponse.ok)
               throw new Error("Failed to fetch registered events");
@@ -130,7 +131,7 @@ export const Events: React.FC = () => {
     };
 
     try {
-      const response = await fetch("http://localhost:8060/api/events/create", {
+      const response = await fetch(`${Config.EVENT_SERVICE_URL}/create`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -182,7 +183,7 @@ export const Events: React.FC = () => {
 
     try {
       const response = await fetch(
-        `http://localhost:8060/api/events/${eventId}/rsvpEvent/${user.sub}/${user.email}`,
+        `${Config.EVENT_SERVICE_URL}/${eventId}/rsvpEvent/${user.sub}/${user.email}`,
         {
           method: "PUT",
           headers: {
@@ -221,7 +222,7 @@ export const Events: React.FC = () => {
   const handleDeleteEvent = async (eventId: string) => {
     try {
       const response = await fetch(
-        `http://localhost:8060/api/events/${eventId}`,
+        `${Config.EVENT_SERVICE_URL}/${eventId}`,
         {
           method: "DELETE",
         }
@@ -269,7 +270,7 @@ export const Events: React.FC = () => {
 
     try {
       const response = await fetch(
-        `http://localhost:8060/api/events/${editingEventId}`,
+        `${Config.EVENT_SERVICE_URL}/${editingEventId}`,
         {
           method: "PUT",
           headers: {

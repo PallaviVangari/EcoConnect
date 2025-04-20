@@ -91,4 +91,10 @@ public class MarketplaceService {
     }
 
 
+    public List<Product> getProductsByIds(List<String> productIds) {
+        if (productIds == null || productIds.isEmpty()) {
+            return List.of(); // Return an empty list if no IDs are provided
+        }
+        return productRepository.findByIdIn(productIds);
+    }
 }

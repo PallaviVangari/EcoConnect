@@ -6,6 +6,7 @@ import { Text } from "../components/Text";
 import { Img } from "../components/Img";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import Config from "../config/config.ts";
 
 type User = {
   id: string;
@@ -21,13 +22,15 @@ type User = {
 
 export function Network() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState<"discover" | "followers" | "following">("discover");
+  const [activeTab, setActiveTab] = useState<
+    "discover" | "followers" | "following"
+  >("discover");
   const [users, setUsers] = useState<User[]>([]);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const observer = useRef<IntersectionObserver | null>(null);
-  const hasFetchedOnce = useRef(false); // 💡 To prevent duplicate fetch
+  const hasFetchedOnce = useRef(false); // To prevent duplicate fetch
 
   const { user: currentUser, isAuthenticated } = useAuth0();
   const USERS_PER_PAGE = 25;
@@ -37,20 +40,20 @@ export function Network() {
 
     setLoading(true);
     try {
-      let endpoint = "/api/users/getAllUsers";
+      let endpoint = `/getAllUsers`;
       if (activeTab === "followers") {
-        endpoint = `/api/users/${currentUser.sub}/followers`;
+        endpoint = `/${currentUser.sub}/followers`;
       } else if (activeTab === "following") {
-        endpoint = `/api/users/${currentUser.sub}/following`;
+        endpoint = `/${currentUser.sub}/following`;
       }
 
-      const res = await axios.get(`http://localhost:8050${endpoint}`);
+      const res = await axios.get(`${Config.USER_SERVICE_URL}${endpoint}`);
       const data: User[] = res.data;
 
       const filteredData =
-          activeTab === "discover"
-              ? data.filter((user) => !user.followers.includes(currentUser.sub))
-              : data;
+        activeTab === "discover"
+          ? data.filter((user) => !user.followers.includes(currentUser.sub))
+          : data;
 
       const pagedData = filteredData.slice(0, USERS_PER_PAGE * page);
 
@@ -99,36 +102,40 @@ export function Network() {
       observer.current.observe(lastUserRef.current);
     }
 
-    return () => observer.current?.disconnect();
+    return () => {
+      if (observer.current) observer.current.disconnect();
+    };
   }, [users, loading, activeTab, hasMore]);
 
   const handleFollow = async (
-      targetUserId: string,
-      currentlyFollowing: boolean
+    targetUserId: string,
+    currentlyFollowing: boolean
   ) => {
     if (!currentUser) return;
 
     try {
       const endpoint = currentlyFollowing
-          ? `/api/users/${currentUser.sub}/unfollow/${targetUserId}`
-          : `/api/users/${currentUser.sub}/follow/${targetUserId}`;
+        ? `/${currentUser.sub}/unfollow/${targetUserId}`
+        : `/${currentUser.sub}/follow/${targetUserId}`;
 
-      await axios.post(`http://localhost:8050${endpoint}`);
+      await axios.post(`${Config.USER_SERVICE_URL}${endpoint}`);
 
       setUsers((prev) => {
         if (activeTab === "following") {
+          // Immediately remove the user from list
           return prev.filter((user) => user.id !== targetUserId);
         } else {
+          // Just toggle the follow state
           return prev.map((user) =>
-              user.id === targetUserId
-                  ? { ...user, isFollowing: !currentlyFollowing }
-                  : user
+            user.id === targetUserId
+              ? { ...user, isFollowing: !currentlyFollowing }
+              : user
           );
         }
       });
 
       toast.success(
-          currentlyFollowing ? "Unfollowed successfully" : "Followed successfully"
+        currentlyFollowing ? "Unfollowed successfully" : "Followed successfully"
       );
     } catch (err) {
       console.error("Error following/unfollowing user", err);
@@ -137,7 +144,7 @@ export function Network() {
   };
 
   const filteredUsers = users.filter((user) =>
-      user.userName.toLowerCase().includes(searchQuery.toLowerCase())
+    user.userName.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -194,9 +201,9 @@ export function Network() {
                       >
                         <div className="flex items-center gap-4 mb-3">
                           <Img
-                              src={user.profileImageUrl || "images/people.svg"}
+                              src={user.profileImageUrl || "images/profilepic.svg"}
                               alt="Profile"
-                              className="w-14 h-14 rounded-full"
+                              className="w-15 h-14 rounded-full"
                           />
                           <div>
                             <Text className="text-lg font-semibold text-[#1d3016]">
