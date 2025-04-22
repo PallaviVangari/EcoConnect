@@ -126,14 +126,14 @@ jobs:
       # Copy deployment files to EC2
       - name: Copy files to EC2
         run: |
-          scp -i ~/.ssh/id_rsa docker-compose.yml .env ec2-user@${{ secrets.EC2_HOST }}:~/deployment/
+          scp -i ~/.ssh/id_rsa docker-compose.prod.yml .env ec2-user@${{ secrets.EC2_HOST }}:~/deployment/
 
       # Deploy on EC2
       - name: Deploy with docker-compose
         run: |
           ssh -i ~/.ssh/id_rsa ec2-user@${{ secrets.EC2_HOST }} '
             cd ~/deployment
-            docker-compose pull
-            docker-compose up -d
+            docker-compose -f docker-compose.prod.yml pull
+            docker-compose -f docker-compose.prod.yml up -d
           '
 
