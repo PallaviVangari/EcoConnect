@@ -2,40 +2,40 @@ version: '3.8'
 
 services:
   user-service:
-    image: yourusername/user-service:${TAG:-latest}
+    image: keerthanaparsa/user-service:${TAG:-latest}
     ports:
       - "8050:8050"
     depends_on:
       - kafka
 
   marketplace-service:
-    image: yourusername/marketplace-service:${TAG:-latest}
+    image: keerthanaparsa/marketplace-service:${TAG:-latest}
     ports:
       - "8070:8070"
     depends_on:
       - kafka
 
   event-service:
-    image: yourusername/event-service:${TAG:-latest}
+    image: keerthanaparsa/event-service:${TAG:-latest}
     ports:
       - "8060:8060"
     depends_on:
       - kafka
 
   frontend:
-    image: yourusername/frontend:${TAG:-latest}
+    image: keerthanaparsa/frontend:${TAG:-latest}
     ports:
       - "5173:5173"
 
   post-service:
-    image: yourusername/post-service:${TAG:-latest}
+    image: keerthanaparsa/post-service:${TAG:-latest}
     ports:
       - "8090:8090"
     depends_on:
       - kafka
 
   feed-service:
-    image: yourusername/feed-service:${TAG:-latest}
+    image: keerthanaparsa/feed-service:${TAG:-latest}
     ports:
       - "8095:8095"
     depends_on:
