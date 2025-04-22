@@ -111,35 +111,40 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      # Create .env file with dynamic tag
-      - name: Create .env file for docker-compose
+      # Prepare .env file on the runner
+      - name: Prepare files
         run: |
           echo "TAG=${{ needs.build-and-push.outputs.tag }}" > .env
           echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env
 
-      # Setup SSH access to EC2
-      - name: Configure SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
-
-      # Ensure deployment directory exists on EC2
+      # Create deployment directory on EC2
       - name: Create deployment directory
-        run: |
-          ssh -i ~/.ssh/id_rsa ec2-user@${{ secrets.EC2_HOST }} 'mkdir -p ~/deployment'
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            mkdir -p ~/deployment
 
-      # Copy deployment files to EC2
-      - name: Copy files to EC2
-        run: |
-          scp -i ~/.ssh/id_rsa docker-compose.prod.yaml .env ec2-user@${{ secrets.EC2_HOST }}:~/deployment/
+      # Copy the files to EC2
+      - name: Copy docker-compose file
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "docker-compose.prod.yml,.env"
+          target: "~/deployment"
 
-      # Deploy on EC2
+      # Deploy using docker-compose
       - name: Deploy with docker-compose
-        run: |
-          ssh -i ~/.ssh/id_rsa ec2-user@${{ secrets.EC2_HOST }} '
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
             cd ~/deployment
-            docker-compose -f docker-compose.prod.yaml pull
-            docker-compose -f docker-compose.prod.yaml up -d
-          '
+            docker-compose -f docker-compose.prod.yml pull
+            docker-compose -f docker-compose.prod.yml up -d
