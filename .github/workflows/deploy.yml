@@ -7,6 +7,8 @@ on:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
 
     steps:
       - name: Checkout code
@@ -123,17 +125,21 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
+      # Ensure deployment directory exists on EC2
+      - name: Create deployment directory
+        run: |
+          ssh -i ~/.ssh/id_rsa ec2-user@${{ secrets.EC2_HOST }} 'mkdir -p ~/deployment'
+
       # Copy deployment files to EC2
       - name: Copy files to EC2
         run: |
-          scp -i ~/.ssh/id_rsa docker-compose.prod.yml .env ec2-user@${{ secrets.EC2_HOST }}:~/deployment/
+          scp -i ~/.ssh/id_rsa docker-compose.prod.yaml .env ec2-user@${{ secrets.EC2_HOST }}:~/deployment/
 
       # Deploy on EC2
       - name: Deploy with docker-compose
         run: |
           ssh -i ~/.ssh/id_rsa ec2-user@${{ secrets.EC2_HOST }} '
             cd ~/deployment
-            docker-compose -f docker-compose.prod.yml pull
-            docker-compose -f docker-compose.prod.yml up -d
+            docker-compose -f docker-compose.prod.yaml pull
+            docker-compose -f docker-compose.prod.yaml up -d
           '
-
