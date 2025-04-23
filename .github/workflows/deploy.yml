@@ -178,7 +178,6 @@ jobs:
               CHATBOT_SERVICE_URL: 'http://${{ secrets.EC2_HOST }}:5000/api/chat',
            };
            EOL
-      # This will run after the containers are started
            docker cp frontend-config.js $(docker-compose -f docker-compose.prod.yml ps -q frontend):/app/public/
 
 
