@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/api/post")
+@RequestMapping("/api/posts")
 @Slf4j
 public class PostController {
 
