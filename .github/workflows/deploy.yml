@@ -34,6 +34,8 @@ jobs:
           mvn clean package -DskipTests
           cd ../FeedService
           mvn clean package -DskipTests
+          cd ../GatewayService
+          mvn clean package -DskipTests
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
@@ -96,6 +98,14 @@ jobs:
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/feed-service:${{ steps.tag.outputs.tag }}
 
+      # Build and push gateway-service
+      - name: Build and push gateway-service
+        uses: docker/build-push-action@v4
+        with:
+          context: ./GatewayService
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/gateway-service:${{ steps.tag.outputs.tag }}
+
   deploy-to-ec2:
     needs: build-and-push
     runs-on: ubuntu-latest
@@ -148,3 +158,37 @@ jobs:
             cd ~/deployment
             docker-compose -f docker-compose.prod.yml pull
             docker-compose -f docker-compose.prod.yml up -d
+
+      # Update frontend config on EC2
+      - name: Update frontend config
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+             cd ~/deployment
+             cat > frontend-config.js << 'EOL'
+             window.CONFIG = {
+              USER_SERVICE_URL: 'http://${{ secrets.EC2_HOST }}:8088/api/users',
+              POST_SERVICE_URL: 'http://${{ secrets.EC2_HOST }}:8088/api/posts',
+              MARKETPLACE_SERVICE_URL: 'http://${{ secrets.EC2_HOST }}:8088/api/marketplace',
+              FEED_SERVICE_URL: 'http://${{ secrets.EC2_HOST }}:8088/api/feed',
+              EVENT_SERVICE_URL: 'http://${{ secrets.EC2_HOST }}:8088/api/events',
+              CHATBOT_SERVICE_URL: 'http://${{ secrets.EC2_HOST }}:5000/api/chat',
+           };
+           EOL
+      # This will run after the containers are started
+           docker cp frontend-config.js $(docker-compose -f docker-compose.prod.yml ps -q frontend):/app/public/
+
+
+      # Verify deployment
+      - name: Verify deployment
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd ~/deployment
+            docker-compose -f docker-compose.prod.yml ps
