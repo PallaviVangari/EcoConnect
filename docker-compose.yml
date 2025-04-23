@@ -1,71 +1,6 @@
 version: '3.8'
 
 services:
-  user-service:
-    build:
-      context: ./UserService
-    ports:
-      - "8050:8050"
-    depends_on:
-      - kafka
-
-  marketplace-service:
-    build:
-      context: ./MarketplaceService
-    ports:
-      - "8070:8070"
-    depends_on:
-      - kafka
-
-  event-service:
-    build:
-      context: ./EventService
-    ports:
-      - "8060:8060"
-    depends_on:
-      - kafka
-
-  frontend:
-    build:
-      context: ./Frontend  # Path to your frontend directory
-    ports:
-      - "5173:5173"  # Map port 5173 to the container's port 80 (for production use nginx)
-
-
-  post-service:
-    build:
-      context: ./PostService
-    ports:
-      - "8090:8090"
-    depends_on:
-      - kafka
-
-  feed-service:
-    build:
-      context: ./FeedService
-    ports:
-      - "8095:8095"
-    depends_on:
-      - kafka
-
-#  notification-service:
-#    build:
-#      context: ./NotificationService
-#    ports:
-#      - "8085:8085"
-#    depends_on:
-#      - kafka
-
-#  redis:
-#    image: redis:latest
-#    container_name: redis
-#    restart: always
-#    command: ["redis-server", "--requirepass", "Squad@123"]
-#    volumes:
-#      - redis_volume_data:/data
-#    ports:
-#      - 6379:6379
-
   kafka:
     image: apache/kafka-native:latest
     container_name: kafka
@@ -82,7 +17,13 @@ services:
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9091
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-
+    networks:
+      - mynetwork
+    healthcheck:
+      test: [ "CMD-SHELL", "nc -z localhost 9093" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   kafka-ui:
     image: kafbat/kafka-ui:main
@@ -94,21 +35,105 @@ services:
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9093
     depends_on:
       - kafka
+    networks:
+      - mynetwork
 
-#  redis-commander:
-#    image: rediscommander/redis-commander:latest
-#    container_name: redis-commander
-#    restart: always
-#    environment:
-#      REDIS_HOSTS: local:redis:6379
-#    ports:
-#      - "8081:8081"
-#    depends_on:
-#      - redis
+  user-service:
+    build:
+      context: ./UserService
+    ports:
+      - "8050:8050"
+    depends_on:
+      kafka:
+        condition: service_healthy
+    networks:
+      - mynetwork
+
+  marketplace-service:
+    build:
+      context: ./MarketplaceService
+    ports:
+      - "8070:8070"
+    depends_on:
+      kafka:
+        condition: service_healthy
+    networks:
+      - mynetwork
+
+  post-service:
+    build:
+      context: ./PostService
+    ports:
+      - "8090:8090"
+    depends_on:
+      kafka:
+        condition: service_healthy
+    networks:
+      - mynetwork
+
+  event-service:
+    build:
+      context: ./EventService
+    ports:
+      - "8060:8060"
+    depends_on:
+      kafka:
+        condition: service_healthy
+    networks:
+      - mynetwork
+
+  frontend:
+    build:
+      context: ./Frontend  # Path to your frontend directory
+    ports:
+      - "5173:5173"  # Map port 5173 to the container's port 80 (for production use nginx)
+    networks:
+      - mynetwork
+
+
+  feed-service:
+    build:
+      context: ./FeedService
+    ports:
+      - "8095:8095"
+    depends_on:
+      kafka:
+        condition: service_healthy
+      post-service:
+        condition: service_started
+      user-service:
+        condition: service_started
+    networks:
+      - mynetwork
+
+  notification-service:
+    build:
+      context: ./NotificationService
+    ports:
+      - "8085:8085"
+    depends_on:
+      kafka:
+        condition: service_healthy
+    networks:
+      - mynetwork
+
+
+  gateway-service:
+    build:
+      context: ./GatewayService
+    ports:
+      - "8088:8080"  # External:Internal (frontend will talk to port 8088)
+    depends_on:
+      - kafka
+      - user-service
+      - post-service
+      - event-service
+      - marketplace-service
+      - feed-service
+    networks:
+      - mynetwork
 
 networks:
   mynetwork:
     driver: bridge
 
-volumes:
-  redis_volume_data:
