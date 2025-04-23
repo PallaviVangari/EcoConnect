@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   user-service:
-    image: ${DOCKERHUB_USERNAME}/user-service:${TAG:-latest}
+    image: keerthanaparsa/user-service:${TAG:-latest}
     ports:
       - "8050:8050"
     depends_on:
@@ -11,7 +11,7 @@ services:
       - mynetwork
 
   marketplace-service:
-    image: ${DOCKERHUB_USERNAME}/marketplace-service:${TAG:-latest}
+    image: keerthanaparsa/marketplace-service:${TAG:-latest}
     ports:
       - "8070:8070"
     depends_on:
@@ -20,7 +20,7 @@ services:
       - mynetwork
 
   event-service:
-    image: ${DOCKERHUB_USERNAME}/event-service:${TAG:-latest}
+    image: keerthanaparsa/event-service:${TAG:-latest}
     ports:
       - "8060:8060"
     depends_on:
@@ -29,14 +29,14 @@ services:
       - mynetwork
 
   frontend:
-    image: ${DOCKERHUB_USERNAME}/frontend:${TAG:-latest}
+    image: keerthanaparsa/frontend:${TAG:-latest}
     ports:
       - "5173:5173"
     networks:
       - mynetwork
 
   post-service:
-    image: ${DOCKERHUB_USERNAME}/post-service:${TAG:-latest}
+    image: keerthanaparsa/post-service:${TAG:-latest}
     ports:
       - "8090:8090"
     depends_on:
@@ -45,7 +45,7 @@ services:
       - mynetwork
 
   feed-service:
-    image: ${DOCKERHUB_USERNAME}/feed-service:${TAG:-latest}
+    image: keerthanaparsa/feed-service:${TAG:-latest}
     ports:
       - "8095:8095"
     depends_on:
@@ -54,7 +54,7 @@ services:
       - mynetwork
 
   gateway-service:
-    image: ${DOCKERHUB_USERNAME}/gateway-service:${TAG:-latest}
+    image: keerthanaparsa/gateway-service:${TAG:-latest}
     ports:
       - "8088:8080"  # External:Internal (frontend will talk to port 8088)
     depends_on:
