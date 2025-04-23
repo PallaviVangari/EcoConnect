@@ -159,7 +159,6 @@ jobs:
             docker-compose -f docker-compose.prod.yml pull
             docker-compose -f docker-compose.prod.yml up -d
 
-      # Update frontend config on EC2
       - name: Update frontend config
         uses: appleboy/ssh-action@master
         with:
@@ -167,18 +166,17 @@ jobs:
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-             cd ~/deployment
-             cat > frontend-config.js << 'EOL'
-             window.CONFIG = {
-              USER_SERVICE_URL: 'http://${{ secrets.EC2_HOST }}:8088/api/users',
-              POST_SERVICE_URL: 'http://${{ secrets.EC2_HOST }}:8088/api/posts',
-              MARKETPLACE_SERVICE_URL: 'http://${{ secrets.EC2_HOST }}:8088/api/marketplace',
-              FEED_SERVICE_URL: 'http://${{ secrets.EC2_HOST }}:8088/api/feed',
-              EVENT_SERVICE_URL: 'http://${{ secrets.EC2_HOST }}:8088/api/events',
-              CHATBOT_SERVICE_URL: 'http://${{ secrets.EC2_HOST }}:5000/api/chat',
-           };
-           EOL
-           docker cp frontend-config.js $(docker-compose -f docker-compose.prod.yml ps -q frontend):/app/public/
+            cd ~/deployment
+            echo "window.CONFIG = {" > frontend-config.js
+            echo "  USER_SERVICE_URL: 'http://${{ secrets.EC2_HOST }}:8088/api/users'," >> frontend-config.js
+            echo "  POST_SERVICE_URL: 'http://${{ secrets.EC2_HOST }}:8088/api/posts'," >> frontend-config.js
+            echo "  MARKETPLACE_SERVICE_URL: 'http://${{ secrets.EC2_HOST }}:8088/api/marketplace'," >> frontend-config.js
+            echo "  FEED_SERVICE_URL: 'http://${{ secrets.EC2_HOST }}:8088/api/feed'," >> frontend-config.js
+            echo "  EVENT_SERVICE_URL: 'http://${{ secrets.EC2_HOST }}:8088/api/events'," >> frontend-config.js
+            echo "  CHATBOT_SERVICE_URL: 'http://${{ secrets.EC2_HOST }}:5000/api/chat'," >> frontend-config.js
+            echo "};" >> frontend-config.js
+
+            docker cp frontend-config.js $(docker-compose -f docker-compose.prod.yml ps -q frontend):/app/public/
 
 
       # Verify deployment
