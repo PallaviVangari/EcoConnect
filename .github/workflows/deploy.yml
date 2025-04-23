@@ -106,86 +106,86 @@ jobs:
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/gateway-service:${{ steps.tag.outputs.tag }}
 
-  deploy-to-ec2:
-    needs: build-and-push
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
-
-      # Prepare .env file on the runner
-      - name: Prepare files
-        run: |
-          echo "TAG=${{ needs.build-and-push.outputs.tag }}" > .env
-          echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env
-
-      # Create deployment directory on EC2
-      - name: Create deployment directory
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ec2-user
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            mkdir -p ~/deployment
-
-      # Copy the files to EC2
-      - name: Copy docker-compose file
-        uses: appleboy/scp-action@master
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ec2-user
-          key: ${{ secrets.EC2_SSH_KEY }}
-          source: "docker-compose.prod.yml,.env"
-          target: "~/deployment"
-
-      # Deploy using docker-compose
-      - name: Deploy with docker-compose
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ec2-user
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            cd ~/deployment
-            docker-compose -f docker-compose.prod.yml pull
-            docker-compose -f docker-compose.prod.yml up -d
-
-      - name: Update frontend config
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ec2-user
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            cd ~/deployment
-            echo "window.CONFIG = {" > frontend-config.js
-            echo "  USER_SERVICE_URL: 'http://${{ secrets.EC2_HOST }}:8088/api/users'," >> frontend-config.js
-            echo "  POST_SERVICE_URL: 'http://${{ secrets.EC2_HOST }}:8088/api/posts'," >> frontend-config.js
-            echo "  MARKETPLACE_SERVICE_URL: 'http://${{ secrets.EC2_HOST }}:8088/api/marketplace'," >> frontend-config.js
-            echo "  FEED_SERVICE_URL: 'http://${{ secrets.EC2_HOST }}:8088/api/feed'," >> frontend-config.js
-            echo "  EVENT_SERVICE_URL: 'http://${{ secrets.EC2_HOST }}:8088/api/events'," >> frontend-config.js
-            echo "  CHATBOT_SERVICE_URL: 'http://${{ secrets.EC2_HOST }}:5000/api/chat'," >> frontend-config.js
-            echo "};" >> frontend-config.js
-
-            docker cp frontend-config.js $(docker-compose -f docker-compose.prod.yml ps -q frontend):/app/public/
-
-
-      # Verify deployment
-      - name: Verify deployment
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ec2-user
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            cd ~/deployment
-            docker-compose -f docker-compose.prod.yml ps
+#  deploy-to-ec2:
+#    needs: build-and-push
+#    runs-on: ubuntu-latest
+#
+#    steps:
+#      - name: Checkout code
+#        uses: actions/checkout@v3
+#
+#      - name: Configure AWS credentials
+#        uses: aws-actions/configure-aws-credentials@v1
+#        with:
+#          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+#          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+#          aws-region: ${{ secrets.AWS_REGION }}
+#
+#      # Prepare .env file on the runner
+#      - name: Prepare files
+#        run: |
+#          echo "TAG=${{ needs.build-and-push.outputs.tag }}" > .env
+#          echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env
+#
+#      # Create deployment directory on EC2
+#      - name: Create deployment directory
+#        uses: appleboy/ssh-action@master
+#        with:
+#          host: ${{ secrets.EC2_HOST }}
+#          username: ec2-user
+#          key: ${{ secrets.EC2_SSH_KEY }}
+#          script: |
+#            mkdir -p ~/deployment
+#
+#      # Copy the files to EC2
+#      - name: Copy docker-compose file
+#        uses: appleboy/scp-action@master
+#        with:
+#          host: ${{ secrets.EC2_HOST }}
+#          username: ec2-user
+#          key: ${{ secrets.EC2_SSH_KEY }}
+#          source: "docker-compose.prod.yml,.env"
+#          target: "~/deployment"
+#
+#      # Deploy using docker-compose
+#      - name: Deploy with docker-compose
+#        uses: appleboy/ssh-action@master
+#        with:
+#          host: ${{ secrets.EC2_HOST }}
+#          username: ec2-user
+#          key: ${{ secrets.EC2_SSH_KEY }}
+#          script: |
+#            cd ~/deployment
+#            docker-compose -f docker-compose.prod.yml pull
+#            docker-compose -f docker-compose.prod.yml up -d
+#
+#      - name: Update frontend config
+#        uses: appleboy/ssh-action@master
+#        with:
+#          host: ${{ secrets.EC2_HOST }}
+#          username: ec2-user
+#          key: ${{ secrets.EC2_SSH_KEY }}
+#          script: |
+#            cd ~/deployment
+#            echo "window.CONFIG = {" > frontend-config.js
+#            echo "  USER_SERVICE_URL: 'http://${{ secrets.EC2_HOST }}:8088/api/users'," >> frontend-config.js
+#            echo "  POST_SERVICE_URL: 'http://${{ secrets.EC2_HOST }}:8088/api/posts'," >> frontend-config.js
+#            echo "  MARKETPLACE_SERVICE_URL: 'http://${{ secrets.EC2_HOST }}:8088/api/marketplace'," >> frontend-config.js
+#            echo "  FEED_SERVICE_URL: 'http://${{ secrets.EC2_HOST }}:8088/api/feed'," >> frontend-config.js
+#            echo "  EVENT_SERVICE_URL: 'http://${{ secrets.EC2_HOST }}:8088/api/events'," >> frontend-config.js
+#            echo "  CHATBOT_SERVICE_URL: 'http://${{ secrets.EC2_HOST }}:5000/api/chat'," >> frontend-config.js
+#            echo "};" >> frontend-config.js
+#
+#            docker cp frontend-config.js $(docker-compose -f docker-compose.prod.yml ps -q frontend):/app/public/
+#
+#
+#      # Verify deployment
+#      - name: Verify deployment
+#        uses: appleboy/ssh-action@master
+#        with:
+#          host: ${{ secrets.EC2_HOST }}
+#          username: ec2-user
+#          key: ${{ secrets.EC2_SSH_KEY }}
+#          script: |
+#            cd ~/deployment
+#            docker-compose -f docker-compose.prod.yml ps
