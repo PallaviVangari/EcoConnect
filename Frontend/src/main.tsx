@@ -39,17 +39,23 @@ import { Auth0Provider } from '@auth0/auth0-react';
 import RegisterUser from "./pages/RegisterUser";
 import './index.css'
 
+// Development mode - bypass Auth0
+const DEV_MODE = true;
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
-        <Auth0Provider
-            domain="dev-13zg1l1k707oxy8x.us.auth0.com"
-            clientId="ZD0KOl9ok3YfDxWU0DiYGYxVUZOJauiy"
-            authorizationParams={{
-                redirect_uri: window.location.origin,
-            }}
-            useRefreshTokens={false}
-        >
+        {DEV_MODE ? (
             <App />
-        </Auth0Provider>
+        ) : (
+            <Auth0Provider
+                domain="dev-13zg1l1k707oxy8x.us.auth0.com"
+                clientId="ZD0KOl9ok3YfDxWU0DiYGYxVUZOJauiy"
+                authorizationParams={{
+                    redirect_uri: window.location.origin,
+                }}
+            >
+                <App />
+            </Auth0Provider>
+        )}
     </React.StrictMode>,
 );
