@@ -26,18 +26,19 @@
 
 import React from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
-import { Navigate } from 'react-router-dom';
 
 export const AuthGuard = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, isLoading, loginWithRedirect } = useAuth0();
+  const [isRedirecting, setIsRedirecting] = React.useState(false);
 
   React.useEffect(() => {
     if (!isLoading && !isAuthenticated) {
+      setIsRedirecting(true);
       loginWithRedirect();
     }
   }, [isLoading, isAuthenticated, loginWithRedirect]);
 
-  if (isLoading || !isAuthenticated) {
+  if (isLoading || isRedirecting) {
     return <div>Loading...</div>;
   }
 
