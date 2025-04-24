@@ -25,8 +25,21 @@
 //
 
 import React from 'react';
+import { useAuth0 } from '@auth0/auth0-react';
+import { Navigate } from 'react-router-dom';
 
 export const AuthGuard = ({ children }: { children: React.ReactNode }) => {
-  // Temporarily bypass authentication
+  const { isAuthenticated, isLoading, loginWithRedirect } = useAuth0();
+
+  React.useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      loginWithRedirect();
+    }
+  }, [isLoading, isAuthenticated, loginWithRedirect]);
+
+  if (isLoading || !isAuthenticated) {
+    return <div>Loading...</div>;
+  }
+
   return <>{children}</>;
 };
