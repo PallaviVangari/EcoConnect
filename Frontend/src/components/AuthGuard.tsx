@@ -25,22 +25,8 @@
 //
 
 import React from 'react';
-import { useAuth0 } from '@auth0/auth0-react';
 
 export const AuthGuard = ({ children }: { children: React.ReactNode }) => {
-  const { isAuthenticated, isLoading, loginWithRedirect } = useAuth0();
-  const [isRedirecting, setIsRedirecting] = React.useState(false);
-
-  React.useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      setIsRedirecting(true);
-      loginWithRedirect();
-    }
-  }, [isLoading, isAuthenticated, loginWithRedirect]);
-
-  if (isLoading || isRedirecting) {
-    return <div>Loading...</div>;
-  }
-
+  // Temporarily bypass authentication
   return <>{children}</>;
 };
