@@ -98,7 +98,6 @@ services:
       - kafka
     networks:
       - mynetwork
-
 networks:
   mynetwork:
     driver: bridge
