@@ -47,6 +47,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             authorizationParams={{
                 redirect_uri: window.location.origin,
             }}
+            leeway={999999} // Add this line to disable the secure origin check during development
         >
             <App />
         </Auth0Provider>
