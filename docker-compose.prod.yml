@@ -1,41 +1,10 @@
 version: '3.8'
 
 services:
-
-  nginx-proxy:
-    image: jwilder/nginx-proxy
-    container_name: nginx-proxy
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - /var/run/docker.sock:/tmp/docker.sock:ro
-      - ./certs:/etc/nginx/certs:ro
-      - ./vhost.d:/etc/nginx/vhost.d
-      - ./html:/usr/share/nginx/html
-    networks:
-      - mynetwork
-
-  letsencrypt:
-    image: jrcs/letsencrypt-nginx-proxy-companion
-    container_name: letsencrypt
-    environment:
-      NGINX_PROXY_CONTAINER: nginx-proxy
-      DEFAULT_EMAIL: your-email@example.com  # Use your actual email address
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./certs:/etc/nginx/certs
-      - ./vhost.d:/etc/nginx/vhost.d
-      - ./html:/usr/share/nginx/html
-    depends_on:
-      - nginx-proxy
-    networks:
-       - mynetwork
-
   user-service:
     image: keerthanaparsa/user-service:${TAG:-latest}
-    expose:
-      - "8050"
+    ports:
+      - "8050:8050"
     depends_on:
       - kafka
     networks:
@@ -43,8 +12,8 @@ services:
 
   marketplace-service:
     image: keerthanaparsa/marketplace-service:${TAG:-latest}
-    expose:
-      - "8070"
+    ports:
+      - "8070:8070"
     depends_on:
       - kafka
     networks:
@@ -52,8 +21,8 @@ services:
 
   event-service:
     image: keerthanaparsa/event-service:${TAG:-latest}
-    expose:
-      - "8060"
+    ports:
+      - "8060:8060"
     depends_on:
       - kafka
     networks:
@@ -61,16 +30,16 @@ services:
 
   frontend:
     image: keerthanaparsa/frontend:${TAG:-latest}
-    expose:
-      - "5173"
+    ports:
+      - "5173:5173"
     command: [ "npm", "run", "dev", "--", "--host", "0.0.0.0" ]
     networks:
       - mynetwork
 
   post-service:
     image: keerthanaparsa/post-service:${TAG:-latest}
-    expose:
-      - "8090"
+    ports:
+      - "8090:8090"
     depends_on:
       - kafka
     networks:
@@ -78,8 +47,8 @@ services:
 
   feed-service:
     image: keerthanaparsa/feed-service:${TAG:-latest}
-    expose:
-      - "8095"
+    ports:
+      - "8095:8095"
     depends_on:
       - kafka
     networks:
@@ -87,12 +56,8 @@ services:
 
   gateway-service:
     image: keerthanaparsa/gateway-service:${TAG:-latest}
-    expose:
-      - "8080"
-    environment:
-      - VIRTUAL_HOST=sjsueconnect.me  # Replace with your actual domain
-      - LETSENCRYPT_HOST=sjsueconnect.me  # Replace with your actual domain
-      - LETSENCRYPT_EMAIL=keerthana.parsa@sjsu.edu # Replace with your email
+    ports:
+      - "8088:8080"  # External:Internal (frontend will talk to port 8088)
     depends_on:
       - kafka
       - user-service
@@ -100,19 +65,6 @@ services:
       - event-service
       - marketplace-service
       - feed-service
-    networks:
-      - mynetwork
-
-  nginx-https:
-    image: nginx:latest
-    container_name: nginx-https
-    ports:
-      - "443:443"
-    volumes:
-      - ./certs:/etc/nginx/certs:ro
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
-    depends_on:
-      - gateway-service
     networks:
       - mynetwork
 
