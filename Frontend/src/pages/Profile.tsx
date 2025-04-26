@@ -1,7 +1,5 @@
 import { useEffect, useState, useRef } from "react";
 import { useAuth0 } from "@auth0/auth0-react";
-import Config from "../config/config.ts";
-import axios from "axios";
 import {
   User as UserIcon,
   Mail,
@@ -16,6 +14,7 @@ import {
 } from "lucide-react";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import {ApiClient} from "../Utilities/ApiClient.tsx";
 
 interface Post {
   postId: string;
@@ -37,7 +36,8 @@ interface User {
 }
 
 export function Profile() {
-  const { user, isAuthenticated } = useAuth0();
+  const { getAccessTokenSilently, isAuthenticated, user } = useAuth0();
+  const [token, setToken] = useState<string | null>(null);
   const [userData, setUserData] = useState<User | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [displayedPosts, setDisplayedPosts] = useState<Post[]>([]);
@@ -51,6 +51,22 @@ export function Profile() {
     profileImage: "",
   });
 
+  useEffect(() => {
+    const fetchToken = async () => {
+      if (isAuthenticated) {
+        try {
+          const accessToken = await getAccessTokenSilently();
+          setToken(accessToken);
+        } catch (error) {
+          console.error('Error getting access token:', error);
+        }
+      }
+    };
+
+    fetchToken();
+  }, [isAuthenticated, getAccessTokenSilently]);
+
+
   const POSTS_PER_PAGE = 5;
   const observer = useRef<IntersectionObserver | null>(null);
   const lastPostRef = useRef<HTMLLIElement | null>(null);
@@ -60,14 +76,22 @@ export function Profile() {
       if (!user?.sub) return;
 
       try {
-        const res = await axios.get<User>(
-          `${Config.USER_SERVICE_URL}/getUserById/${user.sub}`
+        const res = await ApiClient.get<User>(
+          `/api/users/getUserById/${user.sub}`, {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
         );
         const fetchedUser = res.data;
         setUserData(fetchedUser);
 
-        const postsRes = await axios.get<Post[]>(
-          `${Config.POST_SERVICE_URL}/getUserPosts/${fetchedUser.id}`
+        const postsRes = await ApiClient.get<Post[]>(
+          `/api/posts/getUserPosts/${fetchedUser.id}`, {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
         );
         setPosts(postsRes.data);
         setDisplayedPosts(postsRes.data.slice(0, POSTS_PER_PAGE));
@@ -119,11 +143,14 @@ export function Profile() {
   const handleSave = async (postId: string) => {
     if (!userData) return;
     try {
-      await axios.put(
-        `${Config.POST_SERVICE_URL}/updatePost/${userData.id}/${postId}?isAdmin=false`,
-        {
-          content: editContent,
-        }
+      await ApiClient.put(
+        `/api/posts/updatePost/${userData.id}/${postId}?isAdmin=false`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+            content: editContent
+          }
       );
       setPosts((prev) =>
         prev.map((post) =>
@@ -146,8 +173,12 @@ export function Profile() {
   const handleDelete = async (postId: string) => {
     if (!userData) return;
     try {
-      await axios.delete(
-        `${Config.POST_SERVICE_URL}/deletePost/${userData.id}/${postId}?isAdmin=false`
+      await ApiClient.delete(
+        `/api/posts/deletePost/${userData.id}/${postId}?isAdmin=false`,{
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
       );
       const filtered = posts.filter((post) => post.postId !== postId);
       setPosts(filtered);
@@ -170,13 +201,18 @@ export function Profile() {
     if (!userData) return;
 
     try {
-      const res = await axios.put(
-        `${Config.USER_SERVICE_URL}/${userData.userName}`,
+      const res = await ApiClient.put(
+        `/api/users/${userData.userName}`,
         {
           ...userData,
           location: profileForm.location,
           profileImage: profileForm.profileImage,
           bio: profileForm.bio,
+        },
+  {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
       );
       setUserData(res.data);
