@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import { ApiClient } from "../Utilities/ApiClient.tsx";
 import { useAuth0 } from "@auth0/auth0-react";
 import { Button } from "../components/Button";
 import { Text } from "../components/Text";
@@ -8,6 +8,7 @@ import { Heading } from "../components/Heading";
 import { useNavigate } from "react-router-dom";
 import  Chat  from "./Chat";
 import Config from "../config/config.ts";
+import Api from "../lib/api.ts";
 
 interface Product {
   id: string;
@@ -28,7 +29,6 @@ interface Message {
 }
 
 export const Marketplace: React.FC = () => {
-  const { user, isAuthenticated } = useAuth0();
   const navigate = useNavigate();
 
   const [products, setProducts] = useState<Product[]>([]);
@@ -38,12 +38,30 @@ export const Marketplace: React.FC = () => {
   const [showManageProducts, setShowManageProducts] = useState(false);
   const [showProductModal, setShowProductModal] = useState(false);
   const [messageSeller, setMessageSeller] = useState<string | null>(null);
+  const { getAccessTokenSilently, isAuthenticated, user } = useAuth0();
+  const [token, setToken] = useState<string | null>(null);
 
   // Chat States
 //   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 //   const [chatMessages, setChatMessages] = useState<Message[]>([]);
 //   const [chatInput, setChatInput] = useState("");
 //   const [showChatBox, setShowChatBox] = useState(false);
+
+  useEffect(() => {
+    const fetchToken = async () => {
+      if (isAuthenticated) {
+        try {
+          const accessToken = await getAccessTokenSilently();
+          setToken(accessToken);
+        } catch (error) {
+          console.error('Error getting access token:', error);
+        }
+      }
+    };
+
+    fetchToken();
+  }, [isAuthenticated, getAccessTokenSilently]);
+
 
   useEffect(() => {
     fetchProducts();
@@ -54,7 +72,11 @@ export const Marketplace: React.FC = () => {
 
   const fetchProducts = async () => {
     try {
-      const res = await axios.get(`${Config.MARKETPLACE_SERVICE_URL}/getAllProducts`);
+      const res = await ApiClient.get(`/api/marketplace/getAllProducts`, {
+                                                          headers: {
+                                                            Authorization: `Bearer ${token}`,
+                                                          },
+                                                        });
       setProducts(res.data);
     } catch (err) {
       console.error("Error fetching products:", err);
@@ -64,7 +86,11 @@ export const Marketplace: React.FC = () => {
   const fetchUserProducts = async () => {
     if (!user) return;
     try {
-      const res = await axios.get(`${Config.MARKETPLACE_SERVICE_URL}/seller/${user.sub}/products`);
+      const res = await ApiClient.get(`/api/marketplace/seller/${user.sub}/products`, {
+                                                                headers: {
+                                                                  Authorization: `Bearer ${token}`,
+                                                                },
+                                                              });
       setUserProducts(res.data);
     } catch (err) {
       console.error("Error fetching user products:", err);
@@ -76,10 +102,19 @@ export const Marketplace: React.FC = () => {
     try {
       const productData = { ...newProduct, sellerId: user.sub };
       if (editingProduct) {
-        await axios.put(`${Config.MARKETPLACE_SERVICE_URL}/${editingProduct.id}/updateProduct/${user.sub}`, productData);
+        await ApiClient.put(`/api/marketplace/${editingProduct.id}/updateProduct/${user.sub}`, { productData},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          }
+        });
         setEditingProduct(null);
       } else {
-        await axios.post(`${Config.MARKETPLACE_SERVICE_URL}/createProduct`, productData);
+        await ApiClient.post(`/api/marketplace/createProduct`, {productData}, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
       }
       setNewProduct({ name: "", description: "", price: 0 });
       setShowProductModal(false);
@@ -92,7 +127,11 @@ export const Marketplace: React.FC = () => {
   const deleteProduct = async (productId: string) => {
     if (!user) return;
     try {
-      await axios.delete(`${Config.MARKETPLACE_SERVICE_URL}/${productId}/deleteProduct/${user.sub}`);
+      await ApiClient.delete(`/api/marketplace/${productId}/deleteProduct/${user.sub}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       fetchUserProducts();
     } catch (err) {
       console.error("Error deleting product:", err);
@@ -123,7 +162,11 @@ export const Marketplace: React.FC = () => {
       message: chatInput,
     };
     try {
-      const res = await axios.post(`${Config.MARKETPLACE_SERVICE_URL}/messages`, message);
+      const res = await ApiClient.post(`/api/marketplace/messages`, {message}, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       setChatMessages((prev) => [...prev, res.data]);
       setChatInput("");
     } catch (err) {
