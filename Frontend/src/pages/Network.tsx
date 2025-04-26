@@ -29,14 +29,12 @@ export function Network() {
   const [hasMore, setHasMore] = useState(true);
   const observer = useRef<IntersectionObserver | null>(null);
   const lastUserRef = useRef<HTMLDivElement | null>(null);
-  const isFirstLoad = useRef(true); // For initial mount logic
 
   const { user: currentUser, isAuthenticated } = useAuth0();
   const USERS_PER_PAGE = 25;
 
-  const fetchUsers = useCallback(async () => {
-    if (!currentUser || loading) return;
-
+  const fetchUsers = useCallback(async (pageToFetch = 1) => {
+    if (!currentUser) return;
     setLoading(true);
     try {
       let endpoint = `/getAllUsers`;
@@ -54,14 +52,18 @@ export function Network() {
               ? data.filter((user) => !user.followers.includes(currentUser.sub))
               : data;
 
-      const pagedData = filteredData.slice(0, USERS_PER_PAGE * page);
+      const pagedData = filteredData.slice(0, USERS_PER_PAGE * pageToFetch);
 
       const usersWithFollowStatus = pagedData.map((user) => ({
         ...user,
         isFollowing: user.followers?.includes(currentUser.sub) || false,
       }));
 
-      setUsers(usersWithFollowStatus);
+      if (pageToFetch === 1) {
+        setUsers(usersWithFollowStatus);
+      } else {
+        setUsers((prev) => [...prev, ...usersWithFollowStatus]);
+      }
 
       setHasMore(pagedData.length < filteredData.length);
     } catch (error) {
@@ -69,28 +71,25 @@ export function Network() {
     } finally {
       setLoading(false);
     }
-  }, [activeTab, currentUser?.sub, page, loading]);
+  }, [activeTab, currentUser?.sub]);
 
-  // Fetch users when page or active tab changes
+  // Fetch users when active tab changes
   useEffect(() => {
     if (isAuthenticated && currentUser) {
-      fetchUsers();
+      setPage(1);
+      setUsers([]);
+      setHasMore(true);
+      fetchUsers(1);
     }
-  }, [fetchUsers, isAuthenticated, currentUser]);
+  }, [activeTab, isAuthenticated, currentUser, fetchUsers]);
 
-  // Reset pagination and user list on tab switch
+  // Fetch next page when page increments
   useEffect(() => {
-    if (isFirstLoad.current) {
-      isFirstLoad.current = false;
-      return;
-    }
+    if (page === 1) return; // Page 1 already fetched in tab switch
+    fetchUsers(page);
+  }, [page, fetchUsers]);
 
-    setPage(1);
-    setUsers([]);
-    setHasMore(true);
-  }, [activeTab]);
-
-  // Infinite scroll only for Discover
+  // Infinite scroll observer
   useEffect(() => {
     if (observer.current) observer.current.disconnect();
     observer.current = new IntersectionObserver((entries) => {
@@ -110,7 +109,6 @@ export function Network() {
 
   const handleFollow = async (targetUserId: string, currentlyFollowing: boolean) => {
     if (!currentUser) return;
-
     try {
       const endpoint = currentlyFollowing
           ? `/${currentUser.sub}/unfollow/${targetUserId}`
