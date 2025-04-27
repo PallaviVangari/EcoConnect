@@ -1,22 +1,28 @@
-import React, { useEffect } from 'react';
-import { useAuth0 } from '@auth0/auth0-react';
-import { useNavigate } from 'react-router-dom';
+import React from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 
-export function Login() {
-    const { loginWithRedirect, isAuthenticated } = useAuth0();
-    const navigate = useNavigate();
+export const Login = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
 
-    useEffect(() => {
-        if (isAuthenticated) {
-            navigate('/home'); // Already logged in → go to Home
-        } else {
-            loginWithRedirect(); // Not logged in → trigger Auth0 login
-        }
-    }, [isAuthenticated, loginWithRedirect, navigate]);
+  const handleLogin = async () => {
+    try {
+      // Simulate authentication — replace with real authentication logic
+      const fakeToken = 'example-auth-token';
+      localStorage.setItem('token', fakeToken);  // Store the token
 
-    return (
-        <div style={{ textAlign: 'center', marginTop: '5rem' }}>
-            <h2>Redirecting to login...</h2>
-        </div>
-    );
-}
+      // Redirect to the intended page (or home by default)
+      const from = location.state?.from?.pathname || '/';
+      navigate(from, { replace: true });
+    } catch (error) {
+      console.error('Login failed:', error);
+    }
+  };
+
+  return (
+      <div>
+        <h1>Login Page</h1>
+        <button onClick={handleLogin}>Login</button>
+      </div>
+  );
+};
