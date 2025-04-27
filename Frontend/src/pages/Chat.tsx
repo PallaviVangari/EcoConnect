@@ -1,10 +1,8 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import axios from "axios";
-// import { APIURL } from "../Utilities/Apiurl";
+import { APIURL } from "../Utilities/Apiurl";
 import { Client } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
-import Config from "../config/config.ts";
-
 
 interface ChatProps {
   sellerId: string;
@@ -44,7 +42,7 @@ const Chat: React.FC<ChatProps> = ({ sellerId, productName, senderId, productId,
 
     // Create and configure the STOMP client
     const client = new Client({
-      webSocketFactory: () => new SockJS(`${Config.MARKETPLACE_SERVICE_URL}/server`),
+      webSocketFactory: () => new SockJS(`${APIURL}/server`),
       debug: (str) => {
         console.log("STOMP: ", str);
       },
@@ -125,14 +123,14 @@ const Chat: React.FC<ChatProps> = ({ sellerId, productName, senderId, productId,
         }
       }
     };
-  }, [productId, useWebSocket]);
+  }, [productId, APIURL, useWebSocket]);
 
   // Fetch initial messages
   useEffect(() => {
     const fetchMessages = async () => {
       try {
         // First fetch the messages to determine the buyer
-        const response = await axios.get(`${Config.MARKETPLACE_SERVICE_URL}/messages/seller/${sellerId}/product/${productId}`);
+        const response = await axios.get(`${APIURL}/api/marketplace/messages/seller/${sellerId}/product/${productId}`);
 
         if (response.data && response.data.length > 0) {
           // Assuming the buyer is the one sending the message (not the seller)
@@ -166,7 +164,7 @@ const Chat: React.FC<ChatProps> = ({ sellerId, productName, senderId, productId,
 
     const pollInterval = setInterval(async () => {
       try {
-        const response = await axios.get(`${Config.MARKETPLACE_SERVICE_URL}/messages/seller/${sellerId}/product/${productId}`);
+        const response = await axios.get(`${APIURL}/api/marketplace/messages/seller/${sellerId}/product/${productId}`);
         setMessages(response.data || []);
       } catch (error) {
         console.error("Error polling messages:", error);
@@ -174,7 +172,7 @@ const Chat: React.FC<ChatProps> = ({ sellerId, productName, senderId, productId,
     }, 1000); // Poll every 1 seconds
 
     return () => clearInterval(pollInterval);
-  }, [useWebSocket, loading, sellerId, productId]);
+  }, [useWebSocket, loading, sellerId, productId, APIURL]);
 
   // Send a message
   const sendMessage = useCallback(() => {
@@ -223,7 +221,7 @@ const Chat: React.FC<ChatProps> = ({ sellerId, productName, senderId, productId,
   // HTTP method to send messages
   const sendMessageHttp = async (newMessage: Message) => {
     try {
-      const response = await axios.post(`${Config.MARKETPLACE_SERVICE_URL}/messages`, newMessage);
+      const response = await axios.post(`${APIURL}/api/marketplace/messages`, newMessage);
       // Update messages if the response data is different than what we added optimistically
       if (JSON.stringify(response.data) !== JSON.stringify(newMessage)) {
         setMessages((prev) => [...prev, response.data]);
