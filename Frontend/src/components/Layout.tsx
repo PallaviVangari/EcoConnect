@@ -34,7 +34,7 @@ export function Layout() {
   const location = useLocation();
 
   const navigation = [
-    { name: "Home", href: "/", icon: Home },
+    { name: "Home", href: "/home", icon: Home },
     { name: "Network", href: "/network", icon: Users },
     { name: "Events", href: "/events", icon: Calendar },
     { name: "Marketplace", href: "/marketplace", icon: ShoppingBag },

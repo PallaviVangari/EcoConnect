@@ -39,7 +39,7 @@ export function Chatbot() {
     setIsLoading(true);
 
     try {
-      const response = await fetch(`${Config.CHATBOT_SERVICE_URL}`, {
+      const response = await fetch(`${Config.CHATBOT_API_URL}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
