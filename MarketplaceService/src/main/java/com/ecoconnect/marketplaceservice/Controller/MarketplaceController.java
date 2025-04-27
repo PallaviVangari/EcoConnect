@@ -179,6 +179,24 @@ public class MarketplaceController {
     }
 
 
+    // Handle incoming messages and broadcast them to the correct topic
+    @MessageMapping("/chat.sendMessage")
+    public void sendMessage(Message message) {
+        try {
+            // Create the message (persist it, if needed)
+            Message createdMessage = messageService.createMessage(message);
+
+            if (createdMessage != null) {
+                // Broadcast the message to the topic for the given productId
+                messagingTemplate.convertAndSend("/topic/messages/" + message.getProductId(), createdMessage);
+            }
+        } catch (Exception e) {
+            // Handle any exceptions (you can log them if necessary)
+            e.printStackTrace();
+        }
+    }
+
+
 
 
 }
