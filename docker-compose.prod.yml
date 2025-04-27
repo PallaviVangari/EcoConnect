@@ -1,0 +1,104 @@
+version: '3.8'
+
+services:
+  user-service:
+    image: keerthanaparsa/user-service:${TAG:-latest}
+    ports:
+      - "8050:8050"
+    depends_on:
+      - kafka
+    networks:
+      - mynetwork
+
+  marketplace-service:
+    image: keerthanaparsa/marketplace-service:${TAG:-latest}
+    ports:
+      - "8070:8070"
+    depends_on:
+      - kafka
+    networks:
+      - mynetwork
+
+  event-service:
+    image: keerthanaparsa/event-service:${TAG:-latest}
+    ports:
+      - "8060:8060"
+    depends_on:
+      - kafka
+    networks:
+      - mynetwork
+
+  frontend:
+    image: keerthanaparsa/frontend:${TAG:-latest}
+    ports:
+      - "5173:5173"
+    command: [ "npm", "run", "dev", "--", "--host", "0.0.0.0" ]
+    networks:
+      - mynetwork
+
+  post-service:
+    image: keerthanaparsa/post-service:${TAG:-latest}
+    ports:
+      - "8090:8090"
+    depends_on:
+      - kafka
+    networks:
+      - mynetwork
+
+  feed-service:
+    image: keerthanaparsa/feed-service:${TAG:-latest}
+    ports:
+      - "8095:8095"
+    depends_on:
+      - kafka
+    networks:
+      - mynetwork
+
+  gateway-service:
+    image: keerthanaparsa/gateway-service:${TAG:-latest}
+    ports:
+      - "8088:8080"  # External:Internal (frontend will talk to port 8088)
+    depends_on:
+      - kafka
+      - user-service
+      - post-service
+      - event-service
+      - marketplace-service
+      - feed-service
+    networks:
+      - mynetwork
+
+  kafka:
+    image: apache/kafka-native:latest
+    container_name: kafka
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_LISTENERS: DOCKER://0.0.0.0:9093,HOST://0.0.0.0:9092,CONTROLLER://0.0.0.0:9091
+      KAFKA_ADVERTISED_LISTENERS: DOCKER://kafka:9093,HOST://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: DOCKER:PLAINTEXT,HOST:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: DOCKER
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9091
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    networks:
+      - mynetwork
+
+  kafka-ui:
+    image: kafbat/kafka-ui:main
+    ports:
+      - "8080:8080"
+    environment:
+      DYNAMIC_CONFIG_ENABLED: "true"
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9093
+    depends_on:
+      - kafka
+    networks:
+      - mynetwork
+
+networks:
+  mynetwork:
+    driver: bridge
