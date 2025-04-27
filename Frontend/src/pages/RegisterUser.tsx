@@ -1,12 +1,13 @@
 import { useEffect, useRef } from "react";
 import { useAuth0 } from "@auth0/auth0-react";
-import Config from "../config/config";
-import { ApiClient } from "../Utilities/ApiClient.tsx"; // Use your clean apiClient
+import Config from "../config/config.ts"
+import axios from "axios";
 
+// Define a User type to match the backend model
 interface User {
-    id: string;
+    id: string;  // Unique ID from Auth0 (sub)
     userName: string;
-    password: string;
+    password: string; // Auth0 does not require this here
     email: string;
     role: string;
     followers: string[];
@@ -14,7 +15,7 @@ interface User {
 }
 
 const RegisterUser: React.FC = () => {
-    const { user, isAuthenticated, getAccessTokenSilently } = useAuth0();
+    const { user, isAuthenticated } = useAuth0(); // Get user details from Auth0
     const hasRun = useRef(false);
 
     useEffect(() => {
@@ -24,26 +25,26 @@ const RegisterUser: React.FC = () => {
 
             const createUser = async () => {
                 try {
-                    const token = await getAccessTokenSilently();
-
+                    // Ensure user details are not undefined
                     const userData: User = {
-                        id: user.sub,
-                        userName: user.nickname || user.name || "DefaultUser",
-                        password: "", // Auth0 handles authentication
-                        email: user.email || "default@email.com",
-                        role: "USER",
-                        followers: [],
-                        following: []
+                        id: user.sub, // Unique Auth0 user ID
+                        userName: user.nickname || user.name || "DefaultUser", // Default to "DefaultUser" if undefined
+                        password: "", // No password needed, as Auth0 handles authentication
+                        email: user.email || "default@email.com", // Provide a default email if undefined
+                        role: "USER", // Default role
+                        followers: [], // Default empty followers set
+                        following: [] // Default empty following set
                     };
 
                     console.log("Sending user data to backend:", userData);
 
-                    const response = await ApiClient.post(
-                        `/api/users/create`,
+                    // Make the POST request to register the user
+                    const response = await axios.post(
+                        `${Config.USER_SERVICE_URL}/create`,
                         userData,
                         {
                             headers: {
-                                Authorization: `Bearer ${token}`,
+                                "Content-Type": "application/json",
                             },
                         }
                     );
@@ -58,11 +59,12 @@ const RegisterUser: React.FC = () => {
                 }
             };
 
+            // Call the createUser function after checking that the user is authenticated
             createUser();
         }
-    }, [isAuthenticated, user, getAccessTokenSilently]);
+    }, [isAuthenticated, user]); // Runs when user logs in
 
-    return null; // No UI
+    return null; // This component does not render anything
 };
 
 export default RegisterUser;

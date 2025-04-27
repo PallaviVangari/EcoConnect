@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
-import { ApiClient} from "../Utilities/ApiClient.tsx";
+import axios from "axios";
 import { useAuth0 } from "@auth0/auth0-react";
 import { Button } from "../components/Button";
 import { Text } from "../components/Text";
@@ -29,28 +29,9 @@ export function Network() {
   const [hasMore, setHasMore] = useState(true);
   const observer = useRef<IntersectionObserver | null>(null);
   const lastUserRef = useRef<HTMLDivElement | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-  const [followedUsers, setFollowedUsers] = useState<Set<string>>(new Set());
 
-
-  const { user: currentUser, isAuthenticated,  getAccessTokenSilently } = useAuth0();
+  const { user: currentUser, isAuthenticated } = useAuth0();
   const USERS_PER_PAGE = 25;
-
-  useEffect(() => {
-    const fetchToken = async () => {
-      if (isAuthenticated) {
-        try {
-          const accessToken = await getAccessTokenSilently();
-          setToken(accessToken);
-        } catch (error) {
-          console.error('Error getting access token:', error);
-        }
-      }
-    };
-
-    fetchToken();
-  }, [isAuthenticated, getAccessTokenSilently]);
-
 
   const fetchUsers = useCallback(async (pageToFetch = 1) => {
     if (!currentUser) return;
@@ -63,11 +44,7 @@ export function Network() {
         endpoint = `/${currentUser.sub}/following`;
       }
 
-      const res = await ApiClient.get(`/api/users/${endpoint}`,  {
-                                                            headers: {
-                                                              Authorization: `Bearer ${token}`,
-                                                            },
-                                                          });
+      const res = await axios.get(`${Config.USER_SERVICE_URL}${endpoint}`);
       const data: User[] = res.data;
 
       const filteredData =
@@ -137,25 +114,19 @@ export function Network() {
           ? `/${currentUser.sub}/unfollow/${targetUserId}`
           : `/${currentUser.sub}/follow/${targetUserId}`;
 
-      await ApiClient.post(`/api/users/${endpoint}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      await axios.post(`${Config.USER_SERVICE_URL}${endpoint}`);
 
-      if (activeTab === "following") {
-        setUsers((prev) => prev.filter((user) => user.id !== targetUserId));
-      } else if (activeTab === "followers") {
-        setUsers((prev) =>
-            prev.map((user) =>
-                user.id === targetUserId
-                    ? { ...user, isFollowing: !currentlyFollowing }
-                    : user
-            )
-        );
-      } else if (activeTab === "discover" && !currentlyFollowing) {
-        setFollowedUsers((prev) => new Set(prev).add(targetUserId));
-      }
+      setUsers((prev) => {
+        if (activeTab === "following") {
+          return prev.filter((user) => user.id !== targetUserId);
+        } else {
+          return prev.map((user) =>
+              user.id === targetUserId
+                  ? { ...user, isFollowing: !currentlyFollowing }
+                  : user
+          );
+        }
+      });
 
       toast.success(currentlyFollowing ? "Unfollowed successfully" : "Followed successfully");
     } catch (err) {
@@ -163,7 +134,6 @@ export function Network() {
       toast.error("Something went wrong");
     }
   };
-
 
   const filteredUsers = users.filter((user) =>
       user.userName.toLowerCase().includes(searchQuery.toLowerCase())
@@ -260,13 +230,10 @@ export function Network() {
                             activeTab !== "followers" && (
                                 <Button
                                     onClick={() => handleFollow(user.id, user.isFollowing)}
-                                    disabled={activeTab === "discover" && followedUsers.has(user.id)}
                                     className={`w-full rounded-md px-4 py-2 text-sm transition-all ${
                                         user.isFollowing
                                             ? "bg-red-600 text-white hover:bg-red-700"
-                                            : activeTab === "discover" && followedUsers.has(user.id)
-                                                ? "bg-gray-400 text-white cursor-not-allowed"
-                                                : "bg-[#1d3016] text-white hover:bg-[#162c10]"
+                                            : "bg-[#1d3016] text-white hover:bg-[#162c10]"
                                     }`}
                                 >
                                   {user.isFollowing ? "Unfollow" : "Follow"}
